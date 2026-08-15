@@ -38,11 +38,7 @@ cd ..\backend
 java -jar target\quran-api-0.0.1-SNAPSHOT.jar
 ```
 
-Open [http://localhost:8080](http://localhost:8080) on this PC. The public site is **https://www.nooralquran.com** after you buy that domain and host the Docker image.
-
-1. Buy **nooralquran.com** (Namecheap, GoDaddy, or Google Domains). Domains ignore capital letters, so `www.noorAlquran.com` is the same as `www.nooralquran.com`.
-2. Put this project on GitHub, then create a **Web Service** on [Render](https://render.com) using the root `Dockerfile`. Set the port to `8080`.
-3. In the domain registrar, point **www** (CNAME) to the Render hostname, and add **nooralquran.com** as well. In Render, add both custom domains so HTTPS is issued.
+Open [http://localhost:8080](http://localhost:8080) on this PC. The public site is **https://noor-alquran.onrender.com** (Render free plan).
 
 Free host (one Docker service): **Render**, **Railway**, or **Fly.io**. On a phone, Chrome → **Add to Home screen** installs it like an app.
 

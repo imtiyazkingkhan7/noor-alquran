@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, NgZone, inject, signal } from '@angular/core';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -11,6 +11,7 @@ export class InstallService {
   readonly installed = signal(false);
   readonly hint = signal('');
   private deferred?: BeforeInstallPromptEvent;
+  private readonly zone = inject(NgZone);
 
   start(): void {
     const standalone = window.matchMedia('(display-mode: standalone)').matches
@@ -21,41 +22,51 @@ export class InstallService {
       return;
     }
     const electron = !!(window as Window & { nurDesktop?: unknown }).nurDesktop;
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    this.hint.set(this.defaultHint());
     if (electron) {
-      this.hint.set('This Electron window cannot be installed. Open https://www.nooralquran.com in Google Chrome, then use Install in the address bar.');
-    } else if (ios) {
-      this.hint.set('iPhone / iPad: tap the Share button, then Add to Home Screen.');
-    } else if (/android/i.test(navigator.userAgent)) {
-      this.hint.set('Android: open this page in Chrome → menu (⋮) → Install app or Add to Home screen.');
-    } else {
-      this.hint.set('PC: open this page in Google Chrome. Click Install in the address bar (computer icon), or the button below when Chrome offers it.');
+      return;
     }
-    if (!electron) {
-      window.addEventListener('beforeinstallprompt', (event) => {
-        event.preventDefault();
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      this.zone.run(() => {
         this.deferred = event as BeforeInstallPromptEvent;
         this.canInstall.set(true);
-        this.hint.set('Chrome is ready. Tap Install Noor to put an icon on this PC or phone.');
+        this.hint.set('Tap Install Noor. Chrome will ask you to confirm.');
       });
-      window.addEventListener('appinstalled', () => {
+    });
+    window.addEventListener('appinstalled', () => {
+      this.zone.run(() => {
         this.installed.set(true);
         this.canInstall.set(false);
         this.hint.set('Noor is installed. Open it from your home screen or app list.');
       });
-      if ('serviceWorker' in navigator) {
-        void navigator.serviceWorker.register('/sw.js');
-      }
+    });
+    if ('serviceWorker' in navigator) {
+      void navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready);
     }
   }
 
   async install(): Promise<void> {
-    if (!this.deferred) {
+    if (this.deferred) {
+      await this.deferred.prompt();
+      await this.deferred.userChoice;
+      this.deferred = undefined;
+      this.canInstall.set(false);
       return;
     }
-    await this.deferred.prompt();
-    await this.deferred.userChoice;
-    this.deferred = undefined;
-    this.canInstall.set(false);
+    this.hint.set(this.defaultHint());
+  }
+
+  private defaultHint(): string {
+    if ((window as Window & { nurDesktop?: unknown }).nurDesktop) {
+      return 'Open https://noor-alquran.onrender.com in Google Chrome to install.';
+    }
+    if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+      return 'iPhone: tap Share, then Add to Home Screen.';
+    }
+    if (/android/i.test(navigator.userAgent)) {
+      return 'Android Chrome: tap the ⋮ menu, then Install app.';
+    }
+    return 'Chrome: click the ⋮ menu (top right) → Cast, save and share → Install page as app. Or use the computer icon in the address bar.';
   }
 }

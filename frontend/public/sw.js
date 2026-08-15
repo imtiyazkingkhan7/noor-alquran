@@ -1,8 +1,13 @@
-const CACHE = 'noor-v3';
+const CACHE = 'noor-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(['/', '/index.html', '/noor-logo.png', '/icon-192.png', '/icon-512.png', '/manifest.webmanifest'])));
+  event.waitUntil(
+    caches.open(CACHE).then((cache) => {
+      const urls = ['/', '/index.html', '/noor-logo.png', '/icon-192.png', '/icon-512.png', '/manifest.webmanifest'];
+      return Promise.all(urls.map((url) => cache.add(url).catch(() => undefined)));
+    })
+  );
 });
 
 self.addEventListener('activate', (event) => {

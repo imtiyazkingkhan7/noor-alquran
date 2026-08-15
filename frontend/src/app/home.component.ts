@@ -13,15 +13,13 @@ import { InstallService } from './install.service';
       @if (!install.installed()) {
         <aside class="install-card">
           <p class="install-title">Install on PC or phone</p>
-          @if (install.canInstall()) {
-            <button type="button" class="btn btn-gold install" (click)="install.install()">
-              Install Noor on this device
-            </button>
-          }
+          <button type="button" class="btn btn-gold install" (click)="install.install()">
+            Install Noor on this device
+          </button>
           <p class="install-hint">{{ install.hint() }}</p>
           <ul class="install-steps">
-            <li><b>PC</b> — Google Chrome on this site → Install in the address bar</li>
-            <li><b>Android</b> — Chrome menu → Install app / Add to Home screen</li>
+            <li><b>PC Chrome</b> — ⋮ menu → Cast, save and share → Install page as app</li>
+            <li><b>Android</b> — Chrome ⋮ menu → Install app</li>
             <li><b>iPhone</b> — Share → Add to Home Screen</li>
           </ul>
         </aside>

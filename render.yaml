@@ -2,10 +2,11 @@ services:
   - type: web
     name: noor-alquran
     runtime: docker
+    plan: free
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     envVars:
       - key: PORT
         value: "8080"
       - key: APP_CORS_ORIGINS
-        value: https://www.nooralquran.com,https://nooralquran.com,http://localhost:4200
+        value: https://noor-alquran.onrender.com,http://localhost:4200
