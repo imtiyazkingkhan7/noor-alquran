@@ -1,0 +1,189 @@
+<div class="reader">
+  <aside id="sidebar">
+    <h1>Parah</h1>
+    <label class="search">
+      <input [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Search para 1–30 or name" />
+    </label>
+    <div id="surah-list">
+      @for (para of filteredParas(); track para.number) {
+        <button
+          type="button"
+          class="surah-item"
+          [class.active]="detail()?.num === para.number"
+          (click)="goPara(para.number)"
+        >
+          <span class="surah-num">{{ para.number }}</span>
+          <span class="surah-names">
+            <span class="surah-en">{{ para.englishName }}</span>
+            <span class="surah-ar">{{ para.arabicName }}</span>
+          </span>
+        </button>
+      }
+    </div>
+  </aside>
+
+  <div id="main">
+    @if (error()) {
+      <p class="banner">{{ error() }}</p>
+    }
+
+    @if (loading()) {
+      <p id="placeholder">Loading Mushaf…</p>
+    } @else if (detail()) {
+      <div class="page-row">
+        <button type="button" class="page-side" (click)="goLeaf(leaf() - 1)" [disabled]="detail()!.num === 1 && leaf() === 0">
+          <span>Prev</span>
+          <strong>{{ leaf() === 0 ? 'Para ' + ((detail()!.num) - 1) : leaf() }}</strong>
+        </button>
+        <div class="page-stage">
+          <header class="surah-banner">
+            @for (surah of pageSurahs(); track surah.num) {
+              <span class="surah-chip" [class.on]="surah.num === currentSurah()">
+                <b dir="rtl">{{ surah.ar }}</b>
+                <small>{{ surah.en }}</small>
+              </span>
+            }
+          </header>
+          <div class="sheet-wrap">
+            <article class="sheet" dir="rtl">
+            <div class="ruku-gutter" aria-hidden="true">
+              @for (line of currentLines(); track $index) {
+                <div class="ruku-slot">
+                  @if (lineHasRuku(line)) {
+                    <span title="Ruku">ع</span>
+                  }
+                </div>
+              }
+            </div>
+          <div class="page">
+            <div #well class="well">
+              @if (!detail()!.ayahs.length) {
+                <p class="empty">Verse text for this para isn't loaded yet.</p>
+              } @else {
+                @for (line of currentLines(); track $index) {
+                  <p
+                    class="mushaf-line"
+                    [class.short]="line.short"
+                    [class.title]="lineKind(line) === 'title'"
+                    [class.basmala-line]="lineKind(line) === 'basmala'"
+                    [class.para-open]="isParaOpenLine($index)"
+                    [style.column-gap.px]="lineGap(line)"
+                  >
+                    @for (token of line.tokens; track $index) {
+                      @if (token.kind === 'word') {
+                        <span
+                          class="word"
+                          [id]="'w-' + ayahSurah(token.ayah) + '-' + token.ayah.n + '-' + token.index"
+                          [class.done]="wordTone(token.ayah, token.index) === 'done'"
+                          [class.now]="wordTone(token.ayah, token.index) === 'current'"
+                          [class.bad]="wordTone(token.ayah, token.index) === 'wrong'"
+                          (click)="select(token.ayah)"
+                        >{{ token.text }}</span>
+                      } @else if (token.kind === 'close') {
+                        <span class="ayah-cluster">
+                          @if (token.text) {
+                            <span
+                              class="word"
+                              [id]="'w-' + ayahSurah(token.ayah) + '-' + token.ayah.n + '-' + token.index"
+                              [class.done]="wordTone(token.ayah, token.index) === 'done'"
+                              [class.now]="wordTone(token.ayah, token.index) === 'current'"
+                              [class.bad]="wordTone(token.ayah, token.index) === 'wrong'"
+                              (click)="select(token.ayah)"
+                            >{{ token.text }}</span>
+                          }
+                          <button
+                            type="button"
+                            class="ayah-end"
+                            [id]="'a-' + ayahSurah(token.ayah) + '-' + token.ayah.n"
+                            (click)="play(token.ayah, false); $event.stopPropagation()"
+                          ><span class="ayah-num">{{ eastern(token.ayah.n) }}</span></button>
+                          @if (token.ruku) {
+                            <span class="ruku-in" title="Ruku">ع</span>
+                          }
+                        </span>
+                      } @else if (token.kind === 'title') {
+                        <span class="surah-title">{{ token.text }}</span>
+                      } @else {
+                        <span class="basmala">بِسْمِ ٱللّٰهِ ٱلرَّحْمٰنِ ٱلرَّحِيمِ</span>
+                      }
+                    }
+                  </p>
+                }
+              }
+            </div>
+          </div>
+          </article>
+          </div>
+        </div>
+        <button type="button" class="page-side" (click)="goLeaf(leaf() + 1)" [disabled]="detail()!.num === 30 && leaf() === pages().length - 1">
+          <span>Next</span>
+          <strong>{{ leaf() + 1 === pages().length ? 'Para ' + ((detail()!.num) + 1) : leaf() + 2 }}</strong>
+        </button>
+      </div>
+    }
+  </div>
+
+  <aside class="rail">
+    <div class="toolbar">
+      <label>
+        Reciter
+        <select [ngModel]="reciter()" (ngModelChange)="reciter.set($event)">
+          @for (item of reciters(); track item.id) {
+            <option [value]="item.id">{{ item.name }}</option>
+          }
+        </select>
+      </label>
+      <button type="button" class="primary" [disabled]="!detail()?.ayahs?.length" (click)="playing() && chaining() ? stop() : playPage()">
+        {{ playing() && chaining() ? 'Stop recitation' : 'Play page' }}
+      </button>
+      @if (currentAyahView(); as ayah) {
+        <button type="button" (click)="playFromHere()">Play from here</button>
+        <button type="button" (click)="play(ayah, false)">Play ayah</button>
+        <button type="button" (click)="bookmark(ayah)">
+          {{ store.isBookmarked(ayahSurah(ayah), ayah.n) ? 'Bookmarked' : 'Bookmark' }}
+        </button>
+      }
+      <button type="button" (click)="stop(); teacher.stop()">Stop</button>
+      <button type="button" class="teach" [class.live]="teacher.listening()" (click)="startTeacher()">
+        {{ teacher.listening() ? 'Teacher is listening…' : 'Recite to teacher' }}
+      </button>
+    </div>
+
+    <section class="prayer-card">
+      <div class="prayer-head">
+        <span>Prayer times</span>
+        <button type="button" [class.on]="prayer.azaanOn()" (click)="prayer.toggleAzaan()">
+          {{ prayer.azaanOn() ? (prayer.azaanLive() ? 'Azaan playing' : 'Azaan on') : 'Azaan off' }}
+        </button>
+      </div>
+      @if (prayer.status()) {
+        <p class="prayer-status">{{ prayer.status() }}</p>
+      }
+      @if (prayer.azaanLive()) {
+        <button type="button" class="stop-azaan" (click)="prayer.stopAdhan()">Stop azaan</button>
+      }
+      <ul>
+        @for (row of prayer.times(); track row.name) {
+          <li [class.next]="prayer.nextName() === row.name">
+            <span class="p-name">{{ row.name }}</span>
+            <span class="p-ar">{{ row.arabic }}</span>
+            <span class="p-time">{{ row.clock }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+
+    @if (teacher.listening() || teacher.halted() || teacherNote()) {
+      <aside class="coach" [class.stop]="teacher.halted()">
+        <p class="coach-kicker">{{ teacher.halted() ? 'Teacher stopped you' : 'Teacher' }}</p>
+        <p>{{ teacherNote() || teacher.message() }}</p>
+        @if (teacher.heard()) {
+          <p class="heard">{{ teacher.heard() }}</p>
+        }
+        @if (teacher.halted()) {
+          <button type="button" class="primary" (click)="startTeacher()">Try this ayah again</button>
+        }
+      </aside>
+    }
+  </aside>
+</div>
