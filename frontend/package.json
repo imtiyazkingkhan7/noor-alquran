@@ -9,7 +9,9 @@
     "build:site": "ng build --configuration production && node copy-site.cjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "desktop": "electron ."
+    "desktop": "electron .",
+    "android": "ng build --configuration production && npx cap sync android",
+    "android:open": "npx cap open android"
   },
   "private": true,
   "dependencies": {
@@ -20,6 +22,10 @@
     "@angular/platform-browser": "^20.3.28",
     "@angular/platform-browser-dynamic": "^20.3.28",
     "@angular/router": "^20.3.28",
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
@@ -28,6 +34,7 @@
     "@angular-devkit/build-angular": "^20.3.34",
     "@angular/cli": "^20.3.34",
     "@angular/compiler-cli": "^20.3.28",
+    "@capacitor/cli": "^8.5.0",
     "@types/jasmine": "~5.1.0",
     "electron": "^43.4.0",
     "jasmine-core": "~5.6.0",

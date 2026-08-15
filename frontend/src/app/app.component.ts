@@ -17,7 +17,7 @@ import { InstallService } from './install.service';
             <small>Al-Quran</small>
           </span>
         </a>
-        <nav class="nav">
+        <nav class="nav desktop-nav">
           <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Home</a>
           <a routerLink="/search" routerLinkActive="on">Search</a>
         </nav>
@@ -25,6 +25,28 @@ import { InstallService } from './install.service';
       <div class="stage">
         <router-outlet />
       </div>
+      <nav class="tabbar" aria-label="App">
+        <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">
+          <span class="tab-ico">⌂</span>
+          <span>Home</span>
+        </a>
+        <a routerLink="/read" routerLinkActive="on">
+          <span class="tab-ico">۝</span>
+          <span>Mushaf</span>
+        </a>
+        <a routerLink="/practice" routerLinkActive="on">
+          <span class="tab-ico">●</span>
+          <span>Recite</span>
+        </a>
+        <a routerLink="/qibla" routerLinkActive="on">
+          <span class="tab-ico">◉</span>
+          <span>Qibla</span>
+        </a>
+        <a routerLink="/search" routerLinkActive="on">
+          <span class="tab-ico">⌕</span>
+          <span>Search</span>
+        </a>
+      </nav>
     </div>
   `
 })

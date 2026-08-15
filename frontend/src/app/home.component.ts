@@ -35,32 +35,32 @@ import { InstallService } from './install.service';
       </header>
 
       <nav class="menu">
-        <a class="item first" routerLink="/index">
-          <span class="step">1</span>
+        <a class="item first recite" routerLink="/practice">
+          <span class="step">●</span>
+          <span>
+            <b>Recite</b>
+            <small>Teacher stops you on a mistake</small>
+          </span>
+        </a>
+        <a class="item" [routerLink]="['/read']" [queryParams]="{ surah: store.progress().surah, ayah: store.progress().ayah }">
+          <span class="step">۝</span>
+          <span>
+            <b>Mushaf</b>
+            <small>Surah {{ store.progress().surah }} · Ayah {{ store.progress().ayah }}</small>
+          </span>
+        </a>
+        <a class="item" routerLink="/index">
+          <span class="step">30</span>
           <span>
             <b>Para Index</b>
             <small>All 30 parahs</small>
           </span>
         </a>
-        <a class="item" [routerLink]="['/read']" [queryParams]="{ surah: store.progress().surah, ayah: store.progress().ayah }">
-          <span class="step">2</span>
-          <span>
-            <b>Continue reading</b>
-            <small>Surah {{ store.progress().surah }} · Ayah {{ store.progress().ayah }}</small>
-          </span>
-        </a>
         <a class="item" routerLink="/qibla">
-          <span class="step">3</span>
+          <span class="step">Q</span>
           <span>
             <b>Qibla</b>
             <small>Face the Kaaba</small>
-          </span>
-        </a>
-        <a class="item" routerLink="/practice">
-          <span class="step">4</span>
-          <span>
-            <b>Recite to teacher</b>
-            <small>The teacher stops you on a mistake</small>
           </span>
         </a>
       </nav>
@@ -90,6 +90,16 @@ import { InstallService } from './install.service';
   `,
   styles: [`
     .home { padding: 28px 24px 48px; max-width: 560px; margin: 0 auto; }
+    @media (max-width: 900px) {
+      .home { padding: 12px 14px 24px; }
+      .install-card { display: none; }
+      .app-mark { width: min(112px, 28vw); margin-bottom: 0; }
+      .brand-name { font-size: 28px; }
+      .hero { margin-bottom: 12px; }
+      .item b { font-size: 18px; }
+      .item { padding: 12px 14px; }
+      .item.recite { border-color: var(--gold); background: linear-gradient(180deg, rgba(201, 162, 75, 0.22), rgba(14, 28, 23, 0.92)); }
+    }
     .hero { text-align: center; margin-bottom: 22px; }
     .app-mark {
       display: block;

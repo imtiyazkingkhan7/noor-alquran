@@ -70,6 +70,16 @@ import { AyahView, ReaderSurah } from './models';
   `,
   styles: [`
     .wrap { padding: 32px 28px 48px; max-width: 860px; margin: 0 auto; }
+    @media (max-width: 900px) {
+      .wrap { padding: 12px 14px 24px; }
+      h1 { font-size: 22px; }
+      header p { display: none; }
+      .pick { margin: 12px 0; flex-wrap: wrap; gap: 8px; }
+      select { min-width: 0; flex: 1; }
+      .arabic { font-size: 28px; line-height: 1.9; }
+      .actions { position: sticky; bottom: 8px; }
+      .actions button { flex: 1; padding: 12px 10px; }
+    }
     .kicker { letter-spacing: .18em; text-transform: uppercase; font-size: 11px; color: var(--gold); }
     h1 { font-family: var(--display); font-weight: 600; font-size: 36px; margin: 0 0 8px; }
     header p { color: var(--muted); line-height: 1.55; max-width: 620px; }

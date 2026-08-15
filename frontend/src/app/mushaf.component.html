@@ -1,5 +1,9 @@
 <div class="reader">
-  <aside id="sidebar">
+  <button type="button" class="para-fab" (click)="paraDrawer.set(true)">Parahs</button>
+  @if (paraDrawer()) {
+    <button type="button" class="para-mask" (click)="paraDrawer.set(false)" aria-label="Close parah list"></button>
+  }
+  <aside id="sidebar" [class.open]="paraDrawer()">
     <h1>Parah</h1>
     <label class="search">
       <input [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Search para 1–30 or name" />

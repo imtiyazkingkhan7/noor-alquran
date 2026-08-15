@@ -51,6 +51,7 @@ export class MushafComponent implements OnDestroy {
   readonly activeWord = signal(-1);
   readonly haltWord = signal(-1);
   readonly teacherNote = signal('');
+  readonly paraDrawer = signal(false);
   private readonly well = viewChild<ElementRef<HTMLElement>>('well');
   private audio?: HTMLAudioElement;
   private observer?: ResizeObserver;
@@ -287,6 +288,7 @@ export class MushafComponent implements OnDestroy {
       return;
     }
     void this.router.navigate(['/read'], { queryParams: { para: number, leaf } });
+    this.paraDrawer.set(false);
   }
 
   goLeaf(index: number): void {
