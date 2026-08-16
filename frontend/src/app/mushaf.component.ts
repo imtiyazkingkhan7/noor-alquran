@@ -9,7 +9,7 @@ import { namedParas, paraName } from './para-names';
 
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const FONT = '44px "Al Majeed Quranic"';
-const WORD_GAP = 6;
+const WORD_GAP = 4;
 const MARK_SIZE = 30;
 const LINE_HEIGHT = 62;
 
@@ -181,10 +181,6 @@ export class MushafComponent implements OnDestroy {
       return 'title';
     }
     return 'text';
-  }
-
-  lineGap(_line: Line): number {
-    return WORD_GAP;
   }
 
   lineHasRuku(line: Line): boolean {
@@ -459,7 +455,7 @@ export class MushafComponent implements OnDestroy {
     const box = getComputedStyle(well);
     const padX = parseFloat(box.paddingLeft) + parseFloat(box.paddingRight);
     const padY = parseFloat(box.paddingTop) + parseFloat(box.paddingBottom);
-    const width = Math.max(80, Math.floor(well.clientWidth - padX - 8));
+    const width = Math.max(80, Math.floor(well.clientWidth - padX - 4));
     const height = Math.max(40, Math.floor(well.clientHeight - padY));
     if (width < 80 || height < 40) {
       return;
@@ -471,7 +467,7 @@ export class MushafComponent implements OnDestroy {
     const font = `${size} "Al Majeed Quranic"`;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack9`;
+    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack10`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }

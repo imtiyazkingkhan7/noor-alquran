@@ -395,7 +395,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 10px 6px 8px;
+  padding: 4px 0 2px;
   box-sizing: border-box;
 }
 
@@ -408,35 +408,47 @@
 
 .mushaf-line {
   position: relative;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: flex-start;
+  display: block;
+  width: 100%;
   height: var(--mushaf-line-h);
   box-sizing: border-box;
-  font-family: var(--quran);
-  font-size: var(--mushaf-size);
-  line-height: 1;
   margin: 0;
-  padding: 0 4px;
+  padding: 0;
+  font-size: 0;
+  line-height: var(--mushaf-line-h);
   white-space: nowrap;
+  overflow: hidden;
   color: var(--ink);
   letter-spacing: 0;
   word-spacing: 0;
   border-bottom: 1px solid var(--frame-inner);
   font-weight: normal;
   font-synthesis: none;
-  font-feature-settings: "liga" 1, "calt" 1, "kern" 1, "rlig" 1;
+  font-feature-settings: "liga" 1, "calt" 1, "kern" 1, "rlig" 1, "locl" 1;
   direction: rtl;
+  unicode-bidi: embed;
+  text-align: start;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
 }
 
+.mushaf-line > * {
+  font-size: var(--mushaf-size);
+  font-family: var(--quran);
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0;
+  padding: 0;
+}
+
+.mushaf-line > * + * {
+  margin-inline-start: 0.1em;
+}
+
 .mushaf-line.title,
 .mushaf-line.basmala-line {
-  justify-content: center;
+  text-align: center;
   border-bottom: none;
   font-weight: normal;
 }
@@ -445,7 +457,7 @@
   background: #111;
   color: #fff;
   border-bottom-color: #111;
-  padding: 0 8px;
+  padding: 0;
 }
 
 .mushaf-line.para-open .word,
@@ -454,7 +466,6 @@
 .mushaf-line.para-open .basmala,
 .mushaf-line.para-open .surah-title {
   color: #fff;
-  -webkit-text-stroke: 0.2px #fff;
 }
 
 .mushaf-line.para-open .ayah-end {
@@ -473,14 +484,14 @@
 }
 
 .mushaf-line .word {
-  display: inline;
-  flex: 0 0 auto;
+  display: inline-block;
   cursor: pointer;
   border-radius: 2px;
   font-weight: normal;
   font: inherit;
   line-height: inherit;
-  -webkit-text-stroke: 0.2px currentColor;
+  letter-spacing: 0;
+  word-spacing: 0;
 }
 
 .mushaf-line .word .t {
@@ -500,10 +511,10 @@
 
 .ayah-cluster {
   display: inline-flex;
-  flex: 0 0 auto;
   align-items: center;
   white-space: nowrap;
-  column-gap: 0.04em;
+  column-gap: 0.05em;
+  font-size: var(--mushaf-size);
 }
 
 .ayah-end {
@@ -521,6 +532,7 @@
   cursor: pointer;
   color: #1c140c;
   vertical-align: middle;
+  flex: 0 0 auto;
 }
 
 .ayah-end .ayah-num {

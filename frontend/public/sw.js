@@ -1,4 +1,4 @@
-const CACHE = 'noor-v10';
+const CACHE = 'noor-v11';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
