@@ -9,8 +9,8 @@ import { namedParas, paraName } from './para-names';
 
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const FONT = '44px "Al Majeed Quranic"';
-const WORD_GAP = 4;
-const MARK_SIZE = 28;
+const WORD_GAP = 6;
+const MARK_SIZE = 30;
 const LINE_HEIGHT = 62;
 
 type Token =
@@ -181,6 +181,10 @@ export class MushafComponent implements OnDestroy {
       return 'title';
     }
     return 'text';
+  }
+
+  lineGap(_line: Line): number {
+    return WORD_GAP;
   }
 
   lineHasRuku(line: Line): boolean {
@@ -452,7 +456,7 @@ export class MushafComponent implements OnDestroy {
     if (!detail || !well) {
       return;
     }
-    const width = Math.floor(well.clientWidth);
+    const width = Math.floor(well.clientWidth - 8);
     const height = Math.floor(well.clientHeight);
     if (width < 80 || height < 40) {
       return;
@@ -464,7 +468,7 @@ export class MushafComponent implements OnDestroy {
     const font = `${size} "Al Majeed Quranic"`;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack6`;
+    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack7`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }
@@ -589,7 +593,7 @@ function measure(text: string, font = FONT): number {
     return text.length * 11;
   }
   measureCtx.font = font;
-  return measureCtx.measureText(text).width * 0.98;
+  return measureCtx.measureText(text).width;
 }
 
 function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
@@ -652,22 +656,15 @@ function buildPages(ayahs: ReaderAyah[], maxWidth: number, linesPerPage: number,
   const packed = packLines(ayahs, Math.max(120, maxWidth), font);
   const pages: Line[][] = [];
   let page: Line[] = [];
-  const fill = (): void => {
-    while (page.length < linesPerPage) {
-      page.push({ tokens: [], short: true, extra: 0 });
-    }
-  };
   for (const line of packed) {
     const newSurah = line.tokens[0]?.kind === 'title' && page.length > 0;
     if (page.length >= linesPerPage || newSurah) {
-      fill();
       pages.push(page);
       page = [];
     }
     page.push(line);
   }
   if (page.length) {
-    fill();
     pages.push(page);
   }
   return pages.length ? pages : [[]];

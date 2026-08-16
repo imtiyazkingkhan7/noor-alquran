@@ -162,8 +162,8 @@
 .ruku-gutter {
   position: absolute;
   left: -34px;
-  top: 7.35%;
-  bottom: 7.35%;
+  top: 9.4%;
+  bottom: 9.4%;
   width: 28px;
   display: flex;
   flex-direction: column;
@@ -355,15 +355,15 @@
 
 .page {
   position: absolute;
-  top: 7.35%;
-  left: 10.6%;
-  right: 10.83%;
-  bottom: 7.35%;
+  top: 9.4%;
+  left: 12.6%;
+  right: 12.6%;
+  bottom: 9.4%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   color: var(--ink);
-  background: #fff;
+  background: #f7f1de;
 }
 
 .page-head {
@@ -395,9 +395,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
 }
 
 .empty {
@@ -414,22 +411,17 @@
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.06em;
-  flex: 0 0 var(--mushaf-line-h);
-  width: 100%;
   height: var(--mushaf-line-h);
   box-sizing: border-box;
   font-family: var(--quran);
   font-size: var(--mushaf-size);
   line-height: 1;
   margin: 0;
-  padding: 0 2px;
+  padding: 0 4px;
   white-space: nowrap;
   color: var(--ink);
   letter-spacing: 0;
   word-spacing: 0;
-  background: #fff;
-  border: 0;
   border-bottom: 1px solid var(--frame-inner);
   font-weight: normal;
   font-synthesis: none;
@@ -438,11 +430,6 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
-}
-
-.mushaf-line.spread {
-  justify-content: space-between;
-  gap: 0;
 }
 
 .mushaf-line.title,
@@ -456,8 +443,7 @@
   background: #111;
   color: #fff;
   border-bottom-color: #111;
-  padding: 0 2px;
-  width: 100%;
+  padding: 0 8px;
 }
 
 .mushaf-line.para-open .word,
@@ -481,15 +467,12 @@
 }
 
 .mushaf-line:last-child {
-  border-bottom: 1px solid var(--frame-inner);
+  border-bottom: none;
 }
 
 .mushaf-line .word {
-  display: block;
+  display: inline;
   flex: 0 0 auto;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
   cursor: pointer;
   border-radius: 2px;
   font-weight: normal;
