@@ -513,7 +513,7 @@ export class MushafComponent implements OnDestroy {
     const font = `${size} "Al Majeed Quranic"`;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack13`;
+    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack16`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }

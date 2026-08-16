@@ -74,7 +74,7 @@
                       [class.now]="wordTone(token.ayah, token.index) === 'current'"
                       [class.bad]="wordTone(token.ayah, token.index) === 'wrong'"
                       (click)="select(token.ayah)"
-                    >{{ token.text }}</span>} @else if (token.kind === 'close') {<span class="ayah-cluster">@if (token.text) {<span
+                    >{{ token.text }}</span>}@else if (token.kind === 'close') {<span class="ayah-cluster">@if (token.text) {<span
                         class="word"
                         [id]="'w-' + ayahSurah(token.ayah) + '-' + token.ayah.n + '-' + token.index"
                         [class.done]="wordTone(token.ayah, token.index) === 'done'"
@@ -86,7 +86,7 @@
                         class="ayah-end"
                         [id]="'a-' + ayahSurah(token.ayah) + '-' + token.ayah.n"
                         (click)="play(token.ayah, false); $event.stopPropagation()"
-                      ><span class="ayah-num">{{ eastern(token.ayah.n) }}</span></button></span>} @else if (token.kind === 'title') {<span class="surah-title">{{ token.text }}</span>} @else {<span class="basmala">بِسْمِ ٱللّٰهِ ٱلرَّحْمٰنِ ٱلرَّحِيمِ</span>}}</p>
+                      ><span class="ayah-num">{{ eastern(token.ayah.n) }}</span></button></span>}@else if (token.kind === 'title') {<span class="surah-title">{{ token.text }}</span>}@else {<span class="basmala">بِسْمِ ٱللّٰهِ ٱلرَّحْمٰنِ ٱلرَّحِيمِ</span>}}</p>
                 }
               }
             </div>
