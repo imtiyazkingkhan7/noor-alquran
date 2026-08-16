@@ -10,7 +10,7 @@ import { namedParas, paraName } from './para-names';
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const FONT = '44px "Al Majeed Quranic"';
 const MARK_SIZE = 28;
-const LINE_HEIGHT = 76;
+const LINE_HEIGHT = 56;
 
 type Token =
   | { kind: 'word'; ayah: ReaderAyah; index: number; text: string; letters: LetterToken[] }
@@ -192,6 +192,15 @@ export class MushafComponent implements OnDestroy {
     }
     if (line.tokens[0]?.kind === 'title') {
       return 'title';
+    }
+    const first = line.tokens[0];
+    if (
+      line.tokens.length === 1
+      && first?.kind === 'close'
+      && (first.ayah.surah || 1) === 1
+      && first.ayah.n === 1
+    ) {
+      return 'basmala';
     }
     return 'text';
   }
@@ -511,9 +520,9 @@ export class MushafComponent implements OnDestroy {
     const size = vars.getPropertyValue('--mushaf-size').trim() || '44px';
     const lineHeight = parseFloat(vars.getPropertyValue('--mushaf-line-h')) || LINE_HEIGHT;
     const font = `${size} "Al Majeed Quranic"`;
-    const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
+    const linesPerPage = Math.max(13, Math.min(15, Math.floor(height / 52)));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${height}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack26`;
+    const key = `${detail.num}:${width}:${height}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack27`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }
@@ -681,7 +690,24 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
     if (ayah.surahStarts) {
       flush(true);
       lines.push({ tokens: [{ kind: 'title', text: ayah.surahAr || '' }], short: true, extra: 0 });
-      if ((ayah.surah ?? 0) !== 1 && (ayah.surah ?? 0) !== 9) {
+      const surah = ayah.surah ?? 0;
+      if (surah === 1) {
+        const words = normalizeMushaf(ayah.ar).split(/\s+/).filter(Boolean);
+        lines.push({
+          tokens: [{
+            kind: 'close',
+            ayah,
+            index: Math.max(0, words.length - 1),
+            text: words.join(' '),
+            letters: ayah.words?.[0]?.letters ?? [],
+            ruku: false
+          }],
+          short: true,
+          extra: 0
+        });
+        continue;
+      }
+      if (surah !== 9) {
         lines.push({ tokens: [{ kind: 'basmala' }], short: true, extra: 0 });
       }
     }
@@ -723,8 +749,7 @@ function buildPages(ayahs: ReaderAyah[], maxWidth: number, linesPerPage: number,
   const pages: Line[][] = [];
   let page: Line[] = [];
   for (const line of packed) {
-    const newSurah = line.tokens[0]?.kind === 'title' && page.length > 0;
-    if (page.length >= linesPerPage || newSurah) {
+    if (page.length >= linesPerPage) {
       pages.push(padPage(page, linesPerPage));
       page = [];
     }
