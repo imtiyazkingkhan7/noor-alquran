@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { QuranApi } from './quran.api';
 import { ReadingStore } from './reading.store';
 import { TeacherHalt, TeacherSession } from './teacher.session';
-import { AyahView, ReaderSurah, TAJWEED_LEGEND } from './models';
+import { AyahView, LetterToken, ReaderSurah, TAJWEED_LEGEND, tajweedWordClass } from './models';
 
 @Component({
   selector: 'app-practice',
@@ -40,10 +40,11 @@ import { AyahView, ReaderSurah, TAJWEED_LEGEND } from './models';
             @for (word of current.words; track word.index) {
               <span
                 class="word"
+                [class]="tajweedClass(word.letters)"
                 [class.bad]="haltWord() === word.index"
                 [class.ok]="teacher.matchedThrough() >= word.index && haltWord() !== word.index"
                 [class.now]="teacher.currentWord() === word.index && (teacher.listening() || teacher.halted()) && haltWord() !== word.index"
-              >@for (letter of word.letters; track $index) {<span [class]="'t ' + (letter.rule || 'none')">{{ letter.glyph }}</span>}</span>
+              >{{ word.text }}</span>
             }
           </p>
           <details class="legend-box">
@@ -196,6 +197,10 @@ export class PracticeComponent implements OnDestroy {
   readonly note = signal('');
   readonly legend = TAJWEED_LEGEND;
   private audio?: HTMLAudioElement;
+
+  tajweedClass(letters: LetterToken[]): string {
+    return 'word ' + tajweedWordClass(letters);
+  }
 
   constructor() {
     this.api.surahs().subscribe((surahs) => {

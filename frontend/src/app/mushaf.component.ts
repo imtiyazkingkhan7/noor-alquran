@@ -5,7 +5,7 @@ import { QuranApi } from './quran.api';
 import { ReadingStore } from './reading.store';
 import { TeacherHalt, TeacherSession } from './teacher.session';
 import { PrayerService } from './prayer.service';
-import { AyahView, JuzView, LetterToken, ReaderAyah, ReaderPara, ReciterView, TAJWEED_LEGEND } from './models';
+import { AyahView, JuzView, LetterToken, ReaderAyah, ReaderPara, ReciterView, TAJWEED_LEGEND, tajweedWordClass } from './models';
 import { namedParas, paraName } from './para-names';
 
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -196,13 +196,8 @@ export class MushafComponent implements OnDestroy {
     return line.tokens.some((token) => token.kind === 'close' && token.ruku);
   }
 
-  isParaOpenLine(index: number): boolean {
-    if (this.leaf() !== 0) {
-      return false;
-    }
-    const lines = this.currentLines();
-    const first = lines.findIndex((line) => this.lineKind(line) === 'text');
-    return first >= 0 && index === first;
+  tajweedClass(letters: LetterToken[]): string {
+    return 'word ' + tajweedWordClass(letters);
   }
 
   showHeader(): boolean {

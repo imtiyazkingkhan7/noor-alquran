@@ -426,31 +426,6 @@
   direction: rtl;
 }
 
-.mushaf-line.para-open {
-  background: #111;
-  color: #fff;
-  border-bottom-color: #111;
-  padding: 0 8px;
-  margin: 0 -2px;
-}
-
-.mushaf-line.para-open .word,
-.mushaf-line.para-open .ruku-in,
-.mushaf-line.para-open .ayah-num {
-  color: #fff;
-}
-
-.mushaf-line.para-open .ayah-end {
-  border-color: #fff;
-  background: #111;
-  color: #fff;
-}
-
-.mushaf-line.para-open .ayah-end .ayah-num {
-  color: #fff;
-  -webkit-text-stroke: 0.35px #fff;
-}
-
 .mushaf-line.title,
 .mushaf-line.basmala-line {
   justify-content: center;

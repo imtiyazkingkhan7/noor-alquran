@@ -213,13 +213,14 @@ export class PrayerService implements OnDestroy {
     this.distanceKm.set(haversineKm(lat, lng, KAABA_LAT, KAABA_LNG));
     this.locationLabel.set(label || (note ? 'Fallback location' : 'GPS'));
     this.locationNote = note;
-    this.status.set(note || this.status());
     this.updateFacing();
     const key = `${lat.toFixed(3)},${lng.toFixed(3)}`;
     if (key !== this.lastFetchKey) {
       this.lastFetchKey = key;
-      this.status.set(note || 'Loading prayer times…');
+      this.status.set(this.times().length ? note : (note || 'Loading prayer times…'));
       this.fetchTimes(lat, lng);
+    } else {
+      this.status.set(note);
     }
   }
 

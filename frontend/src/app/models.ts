@@ -151,6 +151,12 @@ export interface Health {
   pageCount?: number;
 }
 
+/** One color per word so Indo-Pak letters stay joined. */
+export function tajweedWordClass(letters?: LetterToken[]): string {
+  const rule = letters?.find((letter) => letter.rule && letter.rule !== 'none')?.rule || 'none';
+  return `t ${rule}`;
+}
+
 /** Learner-facing buckets. Engine rule ids still map onto these colors in CSS. */
 export const TAJWEED_LEGEND: { id: string; label: string; name: string }[] = [
   { id: 'ghunnah', label: 'Hold the nose sound', name: 'Ghunnah' },
