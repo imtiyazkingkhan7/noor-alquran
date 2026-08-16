@@ -10,7 +10,7 @@ import { namedParas, paraName } from './para-names';
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const FONT = '44px "Al Majeed Quranic"';
 const MARK_SIZE = 28;
-const LINE_HEIGHT = 62;
+const LINE_HEIGHT = 72;
 
 type Token =
   | { kind: 'word'; ayah: ReaderAyah; index: number; text: string; letters: LetterToken[] }
@@ -513,7 +513,7 @@ export class MushafComponent implements OnDestroy {
     const font = `${size} "Al Majeed Quranic"`;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${height}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack22`;
+    const key = `${detail.num}:${width}:${height}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack24`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }

@@ -8,7 +8,7 @@
   --ink-dim: #b7c4bc;
   --frame-inner: #5a4630;
   --mushaf-size: 44px;
-  --mushaf-line-h: 62px;
+  --mushaf-line-h: 72px;
   display: block;
   height: calc(100dvh - var(--top-h) - var(--tab-h));
 }
@@ -211,7 +211,7 @@
   font-family: var(--quran);
   font-size: 26px;
   font-weight: normal;
-  color: var(--gold);
+  color: #100c08;
   line-height: 1.2;
   text-align: right;
 }
@@ -436,19 +436,20 @@
   height: auto;
   box-sizing: border-box;
   margin: 0;
-  padding: 0 2px;
+  padding: 0.16em 2px 0.28em;
   font-size: var(--mushaf-size);
   font-family: var(--quran);
-  line-height: 1;
+  line-height: 1.65;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   color: var(--ink);
   letter-spacing: 0;
   word-spacing: 0;
   border-bottom: 1px solid #2a2118;
   font-weight: normal;
   font-synthesis: none;
-  font-feature-settings: "liga" 1, "calt" 1, "kern" 1, "rlig" 1, "locl" 1;
+  font-feature-settings: "liga" 1, "calt" 1, "kern" 1, "rlig" 1, "locl" 1, "mark" 1, "mkmk" 1;
+  font-variant-ligatures: common-ligatures;
   direction: rtl;
   unicode-bidi: isolate;
   text-align: start;
@@ -470,22 +471,22 @@
   flex-wrap: nowrap;
   align-items: center;
   flex: 0 0 auto;
-  height: 100%;
+  height: auto;
   margin: 0;
   padding: 0;
   font-size: inherit;
   font-family: inherit;
-  line-height: 1;
+  line-height: inherit;
   letter-spacing: 0;
   word-spacing: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .mushaf-line > .ayah-cluster > .word {
   display: block;
   height: auto;
-  overflow: hidden;
-  line-height: 1;
+  overflow: visible;
+  line-height: inherit;
 }
 
 .mushaf-line.title,
@@ -500,7 +501,6 @@
   background: #111;
   color: #fff;
   border-bottom-color: #111;
-  padding: 0;
 }
 
 .mushaf-line.para-open .word,
