@@ -8,7 +8,7 @@
   --ink-dim: #b7c4bc;
   --frame-inner: #5a4630;
   --mushaf-size: 44px;
-  --mushaf-line-h: 72px;
+  --mushaf-line-h: 76px;
   display: block;
   height: calc(100dvh - var(--top-h) - var(--tab-h));
 }
@@ -106,7 +106,7 @@
   color: var(--ink);
   direction: rtl;
   font-family: var(--quran);
-  line-height: 1.35;
+  line-height: 1.85;
 }
 
 #main {
@@ -436,12 +436,12 @@
   height: auto;
   box-sizing: border-box;
   margin: 0;
-  padding: 0.16em 2px 0.28em;
+  padding: 0.08em 2px 0.22em;
   font-size: var(--mushaf-size);
   font-family: var(--quran);
-  line-height: 1.65;
+  line-height: 1.42;
   white-space: nowrap;
-  overflow: visible;
+  overflow: hidden;
   color: var(--ink);
   letter-spacing: 0;
   word-spacing: 0;
@@ -463,9 +463,22 @@
 }
 
 .mushaf-line > .word,
-.mushaf-line > .ayah-cluster,
 .mushaf-line > .surah-title,
 .mushaf-line > .basmala {
+  display: block;
+  flex: 0 0 auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  font-family: inherit;
+  line-height: inherit;
+  letter-spacing: 0;
+  word-spacing: 0;
+  overflow: visible;
+}
+
+.mushaf-line > .ayah-cluster {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;

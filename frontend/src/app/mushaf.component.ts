@@ -10,7 +10,7 @@ import { namedParas, paraName } from './para-names';
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const FONT = '44px "Al Majeed Quranic"';
 const MARK_SIZE = 28;
-const LINE_HEIGHT = 72;
+const LINE_HEIGHT = 76;
 
 type Token =
   | { kind: 'word'; ayah: ReaderAyah; index: number; text: string; letters: LetterToken[] }
@@ -513,7 +513,7 @@ export class MushafComponent implements OnDestroy {
     const font = `${size} "Al Majeed Quranic"`;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${height}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack24`;
+    const key = `${detail.num}:${width}:${height}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack26`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }
@@ -543,7 +543,7 @@ export class MushafComponent implements OnDestroy {
         this.audio = audio;
         this.playing.set(true);
         this.activeWord.set(0);
-        const words = ayah.ar.trim().split(/\s+/).filter(Boolean);
+        const words = normalizeMushaf(ayah.ar).split(/\s+/).filter(Boolean);
         this.scrollAyah(this.ayahSurah(ayah), ayah.n, 0);
         audio.ontimeupdate = () => {
           if (gen !== this.playGen || !audio.duration || !words.length) {
@@ -644,6 +644,15 @@ function measure(text: string, font = FONT): number {
   return measureCtx.measureText(text).width;
 }
 
+function normalizeMushaf(text: string): string {
+  return text
+    .replace(/[\u200B\uFEFF\u200E\u200F\u202A-\u202E\u2060\u2066-\u2069]/g, '')
+    .replace(/\u2002/g, ' ')
+    .replace(/([\u0615\u06D6-\u06DC\u06DE\uE000-\uF8FF])(?=[\u0621-\u064A\u0671\u067E\u0686\u0688\u0691\u0698\u06A9\u06AF\u06BA\u06BE\u06C1\u06CC\u06D2])/g, '$1 ')
+    .replace(/ +/g, ' ')
+    .trim();
+}
+
 function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
   const lines: Line[] = [];
   let tokens: Token[] = [];
@@ -676,7 +685,7 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
         lines.push({ tokens: [{ kind: 'basmala' }], short: true, extra: 0 });
       }
     }
-    const words = ayah.ar.trim().split(/\s+/).filter(Boolean);
+    const words = normalizeMushaf(ayah.ar).split(/\s+/).filter(Boolean);
     if (!words.length) {
       add({ kind: 'close', ayah, index: 0, text: '', letters: [], ruku: !!ayah.rukuEnds }, MARK_SIZE);
       continue;
