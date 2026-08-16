@@ -72,6 +72,7 @@
                     [class.title]="lineKind(line) === 'title'"
                     [class.basmala-line]="lineKind(line) === 'basmala'"
                     [class.para-open]="isParaOpenLine($index)"
+                    [class.fit]="lineFits(line)"
                     [style.column-gap.px]="lineGap(line)"
                   >
                     @for (token of line.tokens; track $index) {
@@ -102,9 +103,6 @@
                             [id]="'a-' + ayahSurah(token.ayah) + '-' + token.ayah.n"
                             (click)="play(token.ayah, false); $event.stopPropagation()"
                           ><span class="ayah-num">{{ eastern(token.ayah.n) }}</span></button>
-                          @if (token.ruku) {
-                            <span class="ruku-in" title="Ruku">ع</span>
-                          }
                         </span>
                       } @else if (token.kind === 'title') {
                         <span class="surah-title">{{ token.text }}</span>
