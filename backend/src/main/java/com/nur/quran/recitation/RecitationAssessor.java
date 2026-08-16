@@ -2,6 +2,7 @@ package com.nur.quran.recitation;
 
 import com.nur.quran.api.dto.QuranDtos.AssessResponse;
 import com.nur.quran.api.dto.QuranDtos.AyahView;
+import com.nur.quran.api.dto.QuranDtos.LetterToken;
 import com.nur.quran.api.dto.QuranDtos.ProgressResponse;
 import com.nur.quran.api.dto.QuranDtos.ProgressWord;
 import com.nur.quran.api.dto.QuranDtos.WordFeedback;
@@ -10,39 +11,58 @@ import com.nur.quran.tajweed.TajweedEngine;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class RecitationAssessor {
 
     private static final Map<String, String> RULE_TIPS = Map.ofEntries(
-            Map.entry("ghunnah", "Hold ghunnah for two counts on noon/meem with shaddah."),
-            Map.entry("ikhfa", "Conceal the noon sound and hold a light ghunnah — do not make a clear ن."),
-            Map.entry("idgham", "Merge the noon into the next letter with ghunnah (ي ن م و)."),
-            Map.entry("idgham-no-ghunnah", "Merge fully into ل or ر with no ghunnah."),
-            Map.entry("iqlab", "Turn noon sakinah/tanween into a meem sound before ب, with ghunnah."),
-            Map.entry("izhar", "Pronounce noon clearly before throat letters — no ghunnah."),
-            Map.entry("qalqalah", "Echo the qalqalah letter (ق ط ب ج د) when it has sukun or when you stop."),
-            Map.entry("madd", "Stretch the madd letter. Natural madd is two counts; marked madd is longer."),
-            Map.entry("madd-tabii", "Natural madd — stretch alif, waw, or ya for two counts."),
-            Map.entry("madd-munfasil", "Madd munfasil — stretch four or five counts; the hamza is in the next word."),
-            Map.entry("madd-muttasil", "Madd muttasil — stretch four or five counts; the hamza is in the same word."),
-            Map.entry("madd-lazim", "Madd lazim — stretch six counts. This madd is obligatory."),
-            Map.entry("madd-lin", "Madd lin — at a stop, stretch waw or ya sakinah after fatha two to six counts."),
-            Map.entry("ikhfa-shafawi", "Conceal meem sakinah before ب with ghunnah, lips lightly closed."),
-            Map.entry("idgham-shafawi", "Merge meem sakinah into the following meem with ghunnah."),
-            Map.entry("izhar-shafawi", "Pronounce meem sakinah clearly, lips closed, no extra nasalization.")
+            Map.entry("ghunnah", "Hold noon — ghunnah"),
+            Map.entry("ikhfa", "Hide noon — ikhfa"),
+            Map.entry("ikhfa-shafawi", "Hide meem — ikhfa"),
+            Map.entry("idgham", "Merge noon — idgham"),
+            Map.entry("idgham-no-ghunnah", "Merge fully — idgham"),
+            Map.entry("idgham-shafawi", "Merge meem — idgham"),
+            Map.entry("iqlab", "Noon becomes meem — iqlab"),
+            Map.entry("izhar", "Say noon clearly — izhar"),
+            Map.entry("izhar-shafawi", "Say meem clearly"),
+            Map.entry("qalqalah", "Bounce the letter — qalqalah"),
+            Map.entry("madd", "Stretch the vowel — madd"),
+            Map.entry("madd-tabii", "Stretch the vowel — madd"),
+            Map.entry("madd-munfasil", "Stretch the vowel — madd"),
+            Map.entry("madd-muttasil", "Stretch the vowel — madd"),
+            Map.entry("madd-lazim", "Hold the long madd"),
+            Map.entry("madd-lin", "Stretch the vowel — madd")
+    );
+
+    private static final List<String> TIP_ORDER = List.of(
+            "madd-lazim",
+            "ghunnah",
+            "iqlab",
+            "ikhfa",
+            "ikhfa-shafawi",
+            "idgham",
+            "idgham-shafawi",
+            "idgham-no-ghunnah",
+            "qalqalah",
+            "madd-muttasil",
+            "madd-munfasil",
+            "madd-lin",
+            "madd-tabii",
+            "madd",
+            "izhar",
+            "izhar-shafawi"
     );
 
     public AssessResponse assess(AyahView ayah, String transcript, Double durationSeconds) {
-        List<String> tips = ayah.rules().stream()
-                .map(rule -> RULE_TIPS.getOrDefault(rule, "Review the highlighted Tajweed on this ayah."))
-                .toList();
+        List<String> tips = shortTips(ayah.rules());
 
         if (transcript == null || transcript.isBlank()) {
-            String message = "Stop. I did not hear the ayah. Recite clearly into the microphone.";
+            String message = "Stop. I did not hear the ayah.";
             return new AssessResponse(0, List.of(), tips, message, false, true, message, 0);
         }
 
@@ -65,39 +85,25 @@ public class RecitationAssessor {
                 .min()
                 .orElse(0);
 
-        String spoken;
-        StringBuilder teacher = new StringBuilder();
+        String line;
         if (mismatch > 0 || missing > 0) {
-            spoken = "Stop. Do not continue. That recitation is wrong. Listen to the ayah, then read it again with Tajweed.";
-            teacher.append("Stop. A word is wrong or missing. ");
+            line = tipLine(wordRules(ayah, stopAt), "Stop. That word is wrong.");
         } else if (rushed) {
-            spoken = "Stop. You are reading too fast, without Tajweed. Slow down. Hold ghunnah and stretch madd.";
-            teacher.append("Stop. This was rushed — Tajweed needs space. ");
+            line = tipLine(ayah.rules(), "Stop. Too fast. Hold ghunnah and madd.");
         } else if (accuracy < 90) {
-            spoken = "Stop. The ayah is not complete. Repeat from the highlighted word.";
-            teacher.append("Stop. The ayah is incomplete. ");
+            line = "Stop. Finish the ayah.";
         } else {
-            spoken = "Good. The words are correct. Keep the same pace with Tajweed, then continue.";
-            teacher.append("Good recitation of the words. ");
-        }
-        if (missing > 0) {
-            teacher.append("You skipped ").append(missing).append(missing == 1 ? " word. " : " words. ");
-        }
-        if (mismatch > 0) {
-            teacher.append("Check the highlighted mismatched words. ");
-        }
-        if (!tips.isEmpty()) {
-            teacher.append("Tajweed: ").append(String.join(" ", tips));
+            line = "Good. Continue.";
         }
 
         return new AssessResponse(
                 accuracy,
                 alignment,
                 tips,
-                teacher.toString().trim(),
+                line,
                 true,
                 shouldStop,
-                spoken,
+                line,
                 stopAt
         );
     }
@@ -109,7 +115,7 @@ public class RecitationAssessor {
             words.add(new ProgressWord(i, "pending", expected.get(i), ""));
         }
         if (expected.isEmpty()) {
-            return new ProgressResponse(-1, 0, words, false, true, "", "This ayah has no words to track.");
+            return new ProgressResponse(-1, 0, words, false, true, "", "This ayah has no words.");
         }
         if (transcript == null || transcript.isBlank()) {
             setStatus(words, 0, "current", "");
@@ -126,14 +132,15 @@ public class RecitationAssessor {
         for (int i = 0; i < heard.size(); i++) {
             if (i >= expected.size()) {
                 paint(words, expected.size() - 1, expected.size() - 1, "wrong", heard.get(i));
+                String extra = "Stop. Extra words.";
                 return new ProgressResponse(
                         expected.size() - 1,
                         expected.size() - 1,
                         words,
                         true,
                         false,
-                        "Stop. Do not continue. Extra words that are not in this ayah.",
-                        "Stop. Extra words that are not in this ayah."
+                        extra,
+                        extra
                 );
             }
             boolean lastPartial = partial && i == last;
@@ -145,14 +152,15 @@ public class RecitationAssessor {
             }
             if (!similar(expected.get(i), heard.get(i))) {
                 paint(words, i - 1, i, "wrong", heard.get(i));
+                String line = tipLine(wordRules(ayah, i), "Stop. That word is wrong.");
                 return new ProgressResponse(
                         i - 1,
                         i,
                         words,
                         true,
                         false,
-                        "Stop. Do not continue. That word is wrong. Listen, then recite again with Tajweed.",
-                        "Stop. Word " + (i + 1) + " is wrong."
+                        line,
+                        line
                 );
             }
             paint(words, i, i + 1, "current", heard.get(i));
@@ -165,14 +173,15 @@ public class RecitationAssessor {
                 && !ayah.rules().isEmpty();
         if (rushed) {
             paint(words, matchedThrough, 0, "wrong", heard.get(last));
+            String line = tipLine(ayah.rules(), "Stop. Too fast. Hold ghunnah and madd.");
             return new ProgressResponse(
                     matchedThrough,
                     0,
                     words,
                     true,
                     false,
-                    "Stop. The words were right but you read without Tajweed. Repeat slowly with ghunnah and madd.",
-                    "Too fast for the Tajweed on this ayah."
+                    line,
+                    line
             );
         }
         int current = Math.min(matchedThrough + 1, expected.size() - 1);
@@ -184,12 +193,65 @@ public class RecitationAssessor {
                     words,
                     false,
                     true,
-                    "Good. Continue to the next ayah. Keep Tajweed.",
-                    "Good. Continue to the next ayah."
+                    "Good. Continue.",
+                    "Good. Continue."
             );
         }
         paint(words, matchedThrough, current, "current", heard.get(last));
         return new ProgressResponse(matchedThrough, current, words, false, false, "", "Keep going.");
+    }
+
+    private String tipLine(List<String> rules, String fallback) {
+        String tip = firstTip(rules);
+        if (tip == null) {
+            return fallback;
+        }
+        if (fallback.startsWith("Stop. Too fast")) {
+            return "Stop. Too fast. " + tip;
+        }
+        return "Stop. " + tip;
+    }
+
+    private List<String> wordRules(AyahView ayah, int index) {
+        if (ayah.words() == null || index < 0 || index >= ayah.words().size()) {
+            return ayah.rules();
+        }
+        WordToken word = ayah.words().get(index);
+        if (word.letters() == null) {
+            return ayah.rules();
+        }
+        List<String> rules = word.letters().stream()
+                .map(LetterToken::rule)
+                .filter(rule -> rule != null && !rule.isBlank() && !"none".equals(rule))
+                .toList();
+        return rules.isEmpty() ? ayah.rules() : rules;
+    }
+
+    private List<String> shortTips(List<String> rules) {
+        if (rules == null || rules.isEmpty()) {
+            return List.of();
+        }
+        Set<String> seen = new LinkedHashSet<>();
+        for (String rule : TIP_ORDER) {
+            if (rules.contains(rule)) {
+                String tip = RULE_TIPS.get(rule);
+                if (tip != null) {
+                    seen.add(tip);
+                }
+            }
+        }
+        for (String rule : rules) {
+            String tip = RULE_TIPS.get(rule);
+            if (tip != null) {
+                seen.add(tip);
+            }
+        }
+        return List.copyOf(seen);
+    }
+
+    private String firstTip(List<String> rules) {
+        List<String> tips = shortTips(rules);
+        return tips.isEmpty() ? null : tips.get(0);
     }
 
     private void paint(List<ProgressWord> words, int matchedThrough, int current, String currentStatus, String heard) {

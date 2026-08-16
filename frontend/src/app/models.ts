@@ -151,20 +151,13 @@ export interface Health {
   pageCount?: number;
 }
 
-export const TAJWEED_LEGEND: { id: string; label: string }[] = [
-  { id: 'ghunnah', label: 'Ghunnah' },
-  { id: 'ikhfa', label: 'Ikhfa' },
-  { id: 'idgham', label: 'Idgham + ghunnah' },
-  { id: 'idgham-no-ghunnah', label: 'Idgham without ghunnah' },
-  { id: 'iqlab', label: 'Iqlab' },
-  { id: 'izhar', label: 'Izhar' },
-  { id: 'qalqalah', label: 'Qalqalah' },
-  { id: 'madd-tabii', label: "Madd tabi'i" },
-  { id: 'madd-munfasil', label: 'Madd munfasil' },
-  { id: 'madd-muttasil', label: 'Madd muttasil' },
-  { id: 'madd-lazim', label: 'Madd lazim' },
-  { id: 'madd-lin', label: 'Madd lin' },
-  { id: 'ikhfa-shafawi', label: 'Ikhfa shafawi' },
-  { id: 'idgham-shafawi', label: 'Idgham shafawi' },
-  { id: 'izhar-shafawi', label: 'Izhar shafawi' }
+/** Learner-facing buckets. Engine rule ids still map onto these colors in CSS. */
+export const TAJWEED_LEGEND: { id: string; label: string; name: string }[] = [
+  { id: 'ghunnah', label: 'Hold the nose sound', name: 'Ghunnah' },
+  { id: 'ikhfa', label: 'Hide noon', name: 'Ikhfa' },
+  { id: 'idgham', label: 'Merge letters', name: 'Idgham' },
+  { id: 'iqlab', label: 'Noon becomes meem', name: 'Iqlab' },
+  { id: 'qalqalah', label: 'Bounce the letter', name: 'Qalqalah' },
+  { id: 'madd', label: 'Stretch the vowel', name: 'Madd' },
+  { id: 'izhar', label: 'Say noon clearly', name: 'Izhar' }
 ];

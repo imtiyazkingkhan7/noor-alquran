@@ -2,6 +2,25 @@ import { Injectable, inject, signal } from '@angular/core';
 import { QuranApi } from './quran.api';
 import { AyahView, ProgressResponse, WordToken } from './models';
 
+const RULE_TIPS: Record<string, string> = {
+  ghunnah: 'Hold noon — ghunnah',
+  ikhfa: 'Hide noon — ikhfa',
+  'ikhfa-shafawi': 'Hide meem — ikhfa',
+  idgham: 'Merge noon — idgham',
+  'idgham-no-ghunnah': 'Merge fully — idgham',
+  'idgham-shafawi': 'Merge meem — idgham',
+  iqlab: 'Noon becomes meem — iqlab',
+  izhar: 'Say noon clearly — izhar',
+  'izhar-shafawi': 'Say meem clearly',
+  qalqalah: 'Bounce the letter — qalqalah',
+  madd: 'Stretch the vowel — madd',
+  'madd-tabii': 'Stretch the vowel — madd',
+  'madd-munfasil': 'Stretch the vowel — madd',
+  'madd-muttasil': 'Stretch the vowel — madd',
+  'madd-lazim': 'Hold the long madd',
+  'madd-lin': 'Stretch the vowel — madd'
+};
+
 interface SpeechRec {
   lang: string;
   interimResults: boolean;
@@ -73,7 +92,7 @@ export class TeacherSession {
     this.onPass = handlers.onPass;
     this.onProgress = handlers.onProgress;
     this.halted.set(false);
-    this.message.set('I am listening. Recite this ayah with Tajweed.');
+    this.message.set('I am listening.');
     this.heard.set('');
     this.matchedThrough.set(-1);
     this.currentWord.set(0);
@@ -98,8 +117,8 @@ export class TeacherSession {
       ?? (window as unknown as { SpeechRecognition?: new () => SpeechRec }).SpeechRecognition;
     if (!Ctor) {
       this.halt({
-        spoken: 'Stop. This browser cannot hear you. Open Chrome and allow the microphone.',
-        written: 'Speech recognition needs Chrome.',
+        spoken: 'Stop. Open Chrome and allow the microphone.',
+        written: 'Open Chrome and allow the microphone.',
         wordIndex: 0,
         heard: ''
       });
@@ -115,8 +134,8 @@ export class TeacherSession {
         return;
       }
       this.halt({
-        spoken: 'Stop. I could not hear clearly. Check the microphone and recite again.',
-        written: `Microphone: ${event.error}`,
+        spoken: 'Stop. I could not hear clearly.',
+        written: 'I could not hear clearly.',
         wordIndex: 0,
         heard: this.heard()
       });
@@ -209,9 +228,10 @@ export class TeacherSession {
     this.currentWord.set(Math.max(0, check.index));
     this.onProgress?.();
     if (check.wrong) {
+      const line = localTip(this.ayah, check.index) ?? check.detail;
       this.halt({
-        spoken: 'Stop. Do not continue. That word is wrong. Listen to the ayah, then recite it again with Tajweed.',
-        written: check.detail,
+        spoken: line,
+        written: line,
         wordIndex: check.index,
         heard: transcript
       });
@@ -222,8 +242,8 @@ export class TeacherSession {
       const rushed = this.ayah.rules.length > 0 && expected.length >= 3 && seconds < expected.length * 0.45;
       if (rushed) {
         this.halt({
-          spoken: 'Stop. The words were right but you read without Tajweed. Repeat slowly with ghunnah and madd.',
-          written: 'Too fast for the Tajweed on this ayah.',
+          spoken: 'Stop. Too fast. Hold ghunnah and madd.',
+          written: 'Too fast. Hold ghunnah and madd.',
           wordIndex: 0,
           heard: transcript
         });
@@ -231,8 +251,8 @@ export class TeacherSession {
       }
       this.wantListen = false;
       this.stopMic();
-      this.message.set('Good. Continue to the next ayah.');
-      this.speak('Good. Continue to the next ayah. Keep Tajweed.');
+      this.message.set('Good. Continue.');
+      this.speak('Good. Continue.');
       this.onPass?.();
     }
   }
@@ -256,6 +276,14 @@ export class TeacherSession {
     this.rec = undefined;
     this.listening.set(false);
   }
+}
+
+function localTip(ayah: AyahView, index: number): string | null {
+  const word = ayah.words[index];
+  const rule = word?.letters?.find((letter) => letter.rule && letter.rule !== 'none')?.rule
+    ?? ayah.rules.find((item) => RULE_TIPS[item]);
+  const tip = rule ? RULE_TIPS[rule] : undefined;
+  return tip ? `Stop. ${tip}` : null;
 }
 
 function plain(text: string): string {
@@ -298,7 +326,7 @@ function comparePrefix(
         wrong: true,
         index: expected.length - 1,
         matchedThrough: expected.length - 1,
-        detail: 'Stop. Extra words that are not in this ayah.'
+        detail: 'Stop. Extra words.'
       };
     }
     const partial = lastIsPartial && i === last;

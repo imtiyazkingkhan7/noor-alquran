@@ -131,7 +131,10 @@
         <summary>Tajweed colors</summary>
         <ul class="tajweed-legend">
           @for (item of legend; track item.id) {
-            <li><span class="swatch" [class]="item.id"></span>{{ item.label }}</li>
+            <li>
+              <span class="swatch" [class]="item.id"></span>
+              <span class="legend-copy">{{ item.label }} <small>{{ item.name }}</small></span>
+            </li>
           }
         </ul>
       </details>
@@ -184,7 +187,10 @@
     </div>
     <ul class="tajweed-legend rail-legend">
       @for (item of legend; track item.id) {
-        <li><span class="swatch" [class]="item.id"></span>{{ item.label }}</li>
+        <li>
+          <span class="swatch" [class]="item.id"></span>
+          <span class="legend-copy">{{ item.label }} <small>{{ item.name }}</small></span>
+        </li>
       }
     </ul>
 

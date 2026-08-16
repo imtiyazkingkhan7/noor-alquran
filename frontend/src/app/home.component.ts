@@ -70,7 +70,7 @@ import { InstallService } from './install.service';
           <span class="step">ت</span>
           <span>
             <b>Tajweed</b>
-            <small>Rules the teacher uses</small>
+            <small>Seven colors. One action each.</small>
           </span>
         </a>
       </nav>

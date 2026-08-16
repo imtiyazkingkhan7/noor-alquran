@@ -11,14 +11,14 @@ import { LessonView } from './models';
       <header>
         <p class="kicker">Curriculum</p>
         <h1>Tajweed lessons</h1>
-        <p>Each rule is taught first, then practiced on the Mushaf. The recitation teacher uses these same rule names when it hears your ayah.</p>
+        <p>Seven colors. One action each. Same colors on the Mushaf and in Recite.</p>
       </header>
       <div class="grid">
         @for (lesson of lessons(); track lesson.id) {
           <article>
             <span class="swatch" [class]="lesson.rule"></span>
             <h2>{{ lesson.title }}</h2>
-            <p>{{ lesson.summary }}</p>
+            <p class="summary">{{ lesson.summary }}</p>
             <p class="body">{{ lesson.explanation }}</p>
             <ol>
               @for (step of lesson.steps; track step) {
@@ -46,7 +46,8 @@ import { LessonView } from './models';
     header p { max-width: 640px; color: var(--muted); }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 28px; }
     article { background: linear-gradient(180deg, rgba(24,48,40,.9), rgba(14,28,23,.92)); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
-    h2 { font-family: var(--display); font-size: 22px; font-weight: 600; margin: 8px 0; }
+    h2 { font-family: var(--display); font-size: 22px; font-weight: 600; margin: 8px 0 4px; }
+    .summary { font-size: 13px; color: var(--gold); margin: 0 0 8px; }
     .body, li, p { font-size: 14px; line-height: 1.55; color: #d7cbb8; }
     ol { padding-left: 18px; }
     .examples { display: grid; gap: 6px; }

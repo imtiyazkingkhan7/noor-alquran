@@ -14,7 +14,7 @@ import { AyahView, ReaderSurah, TAJWEED_LEGEND } from './models';
       <header class="head">
         <p class="kicker">Teacher</p>
         <h1>Recite</h1>
-        <p class="lede">I stop you on a mistake, then play the correct ayah. Use Chrome and allow the microphone.</p>
+        <p class="lede">I stop you on a mistake, then play the correct ayah. Follow the colors — one action each.</p>
       </header>
 
       <div class="pick">
@@ -50,7 +50,10 @@ import { AyahView, ReaderSurah, TAJWEED_LEGEND } from './models';
             <summary>Tajweed colors</summary>
             <ul class="tajweed-legend">
               @for (item of legend; track item.id) {
-                <li><span class="swatch" [class]="item.id"></span>{{ item.label }}</li>
+                <li>
+                  <span class="swatch" [class]="item.id"></span>
+                  <span class="legend-copy">{{ item.label }} <small>{{ item.name }}</small></span>
+                </li>
               }
             </ul>
           </details>
@@ -60,7 +63,7 @@ import { AyahView, ReaderSurah, TAJWEED_LEGEND } from './models';
 
       <aside class="teacher" [class.stop]="teacher.halted()" [class.live]="teacher.listening()">
         <p class="score">{{ statusLabel() }}</p>
-        <p class="msg">{{ note() || teacher.message() || 'Press Recite, then read this ayah with Tajweed.' }}</p>
+        <p class="msg">{{ note() || teacher.message() || 'Press Recite, then read this ayah.' }}</p>
         @if (teacher.heard()) {
           <p class="heard" dir="rtl">{{ teacher.heard() }}</p>
         }

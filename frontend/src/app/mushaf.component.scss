@@ -487,6 +487,7 @@
 .rail-legend {
   padding-top: 8px;
   border-top: 1px solid var(--panel-line);
+  color: var(--muted, #b7c4bc);
 }
 
 .ayah-cluster {
@@ -725,7 +726,7 @@
   }
   .phone-legend {
     position: relative;
-    color: var(--ink-dim);
+    color: var(--ink);
     font-size: 11px;
     margin: 0 2px 6px;
   }
@@ -743,6 +744,8 @@
     background: rgba(14, 28, 23, 0.96);
     border: 1px solid var(--panel-line);
     box-shadow: var(--shadow);
+    max-height: min(42vh, 280px);
+    overflow: auto;
   }
   .phone-legend[open] .tajweed-legend { display: flex; }
   .phone-dock {

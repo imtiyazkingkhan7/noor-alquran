@@ -147,6 +147,15 @@ class TajweedEngineTest {
         assertTrue(words.get(0).letters().stream().anyMatch(letter -> letter.glyph().contains("ن")));
     }
 
+    @Test
+    void learnerLabelsCollapseMaddSubtypes() {
+        String tabii = labelOn(engine.tag("الرَّحِيۡمِ"), "madd-tabii");
+        String munfasil = labelOn(engine.tag("اِنَّاۤ اَعۡطَيۡنٰكَ"), "madd-munfasil");
+        assertEquals("Stretch the vowel", tabii);
+        assertEquals("Stretch the vowel", munfasil);
+        assertTrue(rules(engine.tag("وَلَا الضَّآلِّيۡنَ")).contains("madd-lazim"));
+    }
+
     private static Set<String> rules(List<WordToken> words) {
         return words.stream()
                 .flatMap(word -> word.letters().stream())
@@ -159,5 +168,14 @@ class TajweedEngineTest {
         return words.stream()
                 .flatMap(word -> word.letters().stream())
                 .anyMatch(letter -> rule.equals(letter.rule()) && letter.glyph().indexOf(base) >= 0);
+    }
+
+    private static String labelOn(List<WordToken> words, String rule) {
+        return words.stream()
+                .flatMap(word -> word.letters().stream())
+                .filter(letter -> rule.equals(letter.rule()))
+                .map(LetterToken::label)
+                .findFirst()
+                .orElse("");
     }
 }

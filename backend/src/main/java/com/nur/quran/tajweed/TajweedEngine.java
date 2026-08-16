@@ -554,21 +554,21 @@ public class TajweedEngine {
 
     enum Rule {
         NONE("none", ""),
-        GHUNNAH("ghunnah", "Ghunnah"),
-        QALQALAH("qalqalah", "Qalqalah"),
-        IKHFA("ikhfa", "Ikhfa"),
-        IDGHAM("idgham", "Idgham with ghunnah"),
-        IDGHAM_NO_GHUNNAH("idgham-no-ghunnah", "Idgham without ghunnah"),
-        IQLAB("iqlab", "Iqlab"),
-        IZHAR("izhar", "Izhar"),
-        IKHFA_SHAFAWI("ikhfa-shafawi", "Ikhfa shafawi"),
-        IDGHAM_SHAFAWI("idgham-shafawi", "Idgham shafawi"),
-        IZHAR_SHAFAWI("izhar-shafawi", "Izhar shafawi"),
-        MADD_TABII("madd-tabii", "Madd tabi'i"),
-        MADD_MUNFASIL("madd-munfasil", "Madd munfasil"),
-        MADD_MUTTASIL("madd-muttasil", "Madd muttasil"),
-        MADD_LAZIM("madd-lazim", "Madd lazim"),
-        MADD_LIN("madd-lin", "Madd lin");
+        GHUNNAH("ghunnah", "Hold the nose sound"),
+        QALQALAH("qalqalah", "Bounce the letter"),
+        IKHFA("ikhfa", "Hide noon"),
+        IDGHAM("idgham", "Merge letters"),
+        IDGHAM_NO_GHUNNAH("idgham-no-ghunnah", "Merge letters"),
+        IQLAB("iqlab", "Noon becomes meem"),
+        IZHAR("izhar", "Say noon clearly"),
+        IKHFA_SHAFAWI("ikhfa-shafawi", "Hide meem"),
+        IDGHAM_SHAFAWI("idgham-shafawi", "Merge meem"),
+        IZHAR_SHAFAWI("izhar-shafawi", "Say meem clearly"),
+        MADD_TABII("madd-tabii", "Stretch the vowel"),
+        MADD_MUNFASIL("madd-munfasil", "Stretch the vowel"),
+        MADD_MUTTASIL("madd-muttasil", "Stretch the vowel"),
+        MADD_LAZIM("madd-lazim", "Hold the long madd"),
+        MADD_LIN("madd-lin", "Stretch the vowel");
 
         final String id;
         final String label;
