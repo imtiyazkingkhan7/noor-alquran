@@ -9,8 +9,8 @@ import { namedParas, paraName } from './para-names';
 
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const FONT = '44px "Al Majeed Quranic"';
-const WORD_GAP = 6;
-const MARK_SIZE = 30;
+const WORD_GAP = 4;
+const MARK_SIZE = 28;
 const LINE_HEIGHT = 62;
 
 type Token =
@@ -99,8 +99,10 @@ export class MushafComponent implements OnDestroy {
       this.openPara(1, 0, 0);
     });
     afterNextRender(() => {
-      const run = () => this.packToWidth();
-      if (document.fonts?.load) {
+      const run = () => this.packToWidth(true);
+      if (document.fonts?.ready) {
+        void document.fonts.ready.then(run);
+      } else if (document.fonts?.load) {
         void document.fonts.load(FONT).then(run);
       }
       run();
@@ -179,14 +181,6 @@ export class MushafComponent implements OnDestroy {
       return 'title';
     }
     return 'text';
-  }
-
-  lineGap(line: Line): number {
-    const count = line.tokens.filter((token) => token.kind === 'word' || token.kind === 'close').length;
-    if (line.short || count < 2) {
-      return WORD_GAP;
-    }
-    return WORD_GAP + line.extra / (count - 1);
   }
 
   lineHasRuku(line: Line): boolean {
@@ -452,27 +446,32 @@ export class MushafComponent implements OnDestroy {
     });
   }
 
-  private packToWidth(): void {
+  private packToWidth(force = false): void {
     const detail = this.detail();
     const well = this.well()?.nativeElement;
     if (!detail || !well) {
       return;
     }
-    const width = Math.floor(well.clientWidth - 4);
+    const width = Math.floor(well.clientWidth);
     const height = Math.floor(well.clientHeight);
     if (width < 80 || height < 40) {
       return;
     }
-    const lineHeight = LINE_HEIGHT;
+    const host = well.closest('app-mushaf') as HTMLElement | null;
+    const vars = getComputedStyle(host ?? well);
+    const size = vars.getPropertyValue('--mushaf-size').trim() || '44px';
+    const lineHeight = parseFloat(vars.getPropertyValue('--mushaf-line-h')) || LINE_HEIGHT;
+    const font = `${size} "Al Majeed Quranic"`;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:pack4`;
-    if (key === this.lastPack && this.pages().length) {
+    const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
+    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack5`;
+    if (!force && key === this.lastPack && this.pages().length) {
       return;
     }
     this.lastPack = key;
     const ayah = this.currentAyah();
     const surah = this.currentSurah();
-    this.pages.set(buildPages(detail.ayahs, width, linesPerPage));
+    this.pages.set(buildPages(detail.ayahs, width, linesPerPage, font));
     if (this.pendingLastLeaf) {
       this.leaf.set(Math.max(0, this.pages().length - 1));
       this.pendingLastLeaf = false;
@@ -579,7 +578,7 @@ export class MushafComponent implements OnDestroy {
 
 let measureCtx: CanvasRenderingContext2D | null = null;
 
-function measure(text: string): number {
+function measure(text: string, font = FONT): number {
   if (typeof document === 'undefined') {
     return text.length * 11;
   }
@@ -589,11 +588,11 @@ function measure(text: string): number {
   if (!measureCtx) {
     return text.length * 11;
   }
-  measureCtx.font = FONT;
+  measureCtx.font = font;
   return measureCtx.measureText(text).width;
 }
 
-function packLines(ayahs: ReaderAyah[], maxWidth: number): Line[] {
+function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
   const lines: Line[] = [];
   let tokens: Token[] = [];
   let used = 0;
@@ -635,11 +634,11 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number): Line[] {
     words.forEach((text, index) => {
       const letters = ayah.words?.[index]?.letters ?? [];
       if (index === words.length - 1) {
-        const size = Math.min(maxWidth, Math.ceil(measure(text))) + WORD_GAP + MARK_SIZE;
+        const size = Math.min(maxWidth, Math.ceil(measure(text, font))) + WORD_GAP + MARK_SIZE;
         add({ kind: 'close', ayah, index, text, letters, ruku: !!ayah.rukuEnds }, size);
         return;
       }
-      add({ kind: 'word', ayah, index, text, letters }, Math.min(maxWidth, Math.ceil(measure(text))));
+      add({ kind: 'word', ayah, index, text, letters }, Math.min(maxWidth, Math.ceil(measure(text, font))));
     });
     if ((ayah.surah ?? 0) === 1 && ayah.n === 1) {
       flush(true);
@@ -649,8 +648,8 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number): Line[] {
   return lines;
 }
 
-function buildPages(ayahs: ReaderAyah[], maxWidth: number, linesPerPage: number): Line[][] {
-  const packed = packLines(ayahs, Math.max(120, maxWidth));
+function buildPages(ayahs: ReaderAyah[], maxWidth: number, linesPerPage: number, font = FONT): Line[][] {
+  const packed = packLines(ayahs, Math.max(120, maxWidth), font);
   const pages: Line[][] = [];
   let page: Line[] = [];
   for (const line of packed) {

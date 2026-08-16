@@ -72,7 +72,7 @@
                     [class.title]="lineKind(line) === 'title'"
                     [class.basmala-line]="lineKind(line) === 'basmala'"
                     [class.para-open]="isParaOpenLine($index)"
-                    [style.column-gap.px]="lineGap(line)"
+                    [class.spread]="!line.short && lineKind(line) === 'text'"
                   >
                     @for (token of line.tokens; track $index) {
                       @if (token.kind === 'word') {
