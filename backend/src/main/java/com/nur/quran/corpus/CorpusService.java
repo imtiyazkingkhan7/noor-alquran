@@ -232,7 +232,8 @@ public class CorpusService {
                         ar,
                         en,
                         rukuEndsAt(surah.ayahs, i),
-                        ayah.numberInSurah == 1
+                        ayah.numberInSurah == 1,
+                        tajweedEngine.tag(ar)
                 ));
             }
         }

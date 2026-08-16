@@ -5,7 +5,7 @@ import { QuranApi } from './quran.api';
 import { ReadingStore } from './reading.store';
 import { TeacherHalt, TeacherSession } from './teacher.session';
 import { PrayerService } from './prayer.service';
-import { AyahView, JuzView, ReaderAyah, ReaderPara, ReciterView } from './models';
+import { AyahView, JuzView, LetterToken, ReaderAyah, ReaderPara, ReciterView, TAJWEED_LEGEND } from './models';
 import { namedParas, paraName } from './para-names';
 
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -15,8 +15,8 @@ const MARK_SIZE = 28;
 const LINE_HEIGHT = 54;
 
 type Token =
-  | { kind: 'word'; ayah: ReaderAyah; index: number; text: string }
-  | { kind: 'close'; ayah: ReaderAyah; index: number; text: string; ruku: boolean }
+  | { kind: 'word'; ayah: ReaderAyah; index: number; text: string; letters: LetterToken[] }
+  | { kind: 'close'; ayah: ReaderAyah; index: number; text: string; letters: LetterToken[]; ruku: boolean }
   | { kind: 'title'; text: string }
   | { kind: 'basmala' };
 type Line = { tokens: Token[]; short: boolean; extra: number };
@@ -52,6 +52,7 @@ export class MushafComponent implements OnDestroy {
   readonly haltWord = signal(-1);
   readonly teacherNote = signal('');
   readonly paraDrawer = signal(false);
+  readonly legend = TAJWEED_LEGEND;
   private readonly well = viewChild<ElementRef<HTMLElement>>('well');
   private audio?: HTMLAudioElement;
   private observer?: ResizeObserver;
@@ -60,6 +61,8 @@ export class MushafComponent implements OnDestroy {
   private pageQueue: ReaderAyah[] = [];
   private queueIndex = 0;
   private playGen = 0;
+  private swipeX = 0;
+  private swipeY = 0;
 
   constructor() {
     this.api.reciters().subscribe((reciters) => this.reciters.set(reciters));
@@ -289,6 +292,22 @@ export class MushafComponent implements OnDestroy {
     }
     void this.router.navigate(['/read'], { queryParams: { para: number, leaf } });
     this.paraDrawer.set(false);
+  }
+
+  onSwipeStart(event: TouchEvent): void {
+    const touch = event.changedTouches[0];
+    this.swipeX = touch.clientX;
+    this.swipeY = touch.clientY;
+  }
+
+  onSwipeEnd(event: TouchEvent): void {
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - this.swipeX;
+    const dy = touch.clientY - this.swipeY;
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy)) {
+      return;
+    }
+    this.goLeaf(this.leaf() + (dx < 0 ? 1 : -1));
   }
 
   goLeaf(index: number): void {
@@ -611,19 +630,20 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number): Line[] {
     }
     const words = ayah.ar.trim().split(/\s+/).filter(Boolean);
     if (!words.length) {
-      add({ kind: 'close', ayah, index: 0, text: '', ruku: !!ayah.rukuEnds }, MARK_SIZE);
+      add({ kind: 'close', ayah, index: 0, text: '', letters: [], ruku: !!ayah.rukuEnds }, MARK_SIZE);
       if ((ayah.surah ?? 0) === 1 && ayah.n === 1) {
         flush(true);
       }
       continue;
     }
     words.forEach((text, index) => {
+      const letters = ayah.words?.[index]?.letters ?? [];
       if (index === words.length - 1) {
         const size = Math.min(maxWidth, Math.ceil(measure(text))) + WORD_GAP + MARK_SIZE;
-        add({ kind: 'close', ayah, index, text, ruku: !!ayah.rukuEnds }, size);
+        add({ kind: 'close', ayah, index, text, letters, ruku: !!ayah.rukuEnds }, size);
         return;
       }
-      add({ kind: 'word', ayah, index, text }, Math.min(maxWidth, Math.ceil(measure(text))));
+      add({ kind: 'word', ayah, index, text, letters }, Math.min(maxWidth, Math.ceil(measure(text))));
     });
     if ((ayah.surah ?? 0) === 1 && ayah.n === 1) {
       flush(true);

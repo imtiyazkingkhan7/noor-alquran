@@ -66,6 +66,9 @@ class TajweedEngineTest {
 
         List<WordToken> tanweenMeem = engine.tag("هُدًى مِّنۡ");
         assertTrue(rules(tanweenMeem).contains("idgham"));
+
+        List<WordToken> tanweenIzhar = engine.tag("كُفُوًا اَحَدٌ");
+        assertTrue(rules(tanweenIzhar).contains("izhar"));
     }
 
     @Test

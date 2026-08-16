@@ -27,7 +27,7 @@ import { LessonView } from './models';
             </ol>
             <p class="examples">
               @for (ex of lesson.examples; track $index) {
-                <a [routerLink]="'/'">{{ ex.note }}</a>
+                <a [routerLink]="['/read']" [queryParams]="{ surah: ex.surah, ayah: ex.ayah }">{{ ex.note }}</a>
               }
             </p>
           </article>
@@ -37,6 +37,10 @@ import { LessonView } from './models';
   `,
   styles: [`
     .wrap { padding: 32px 28px 48px; max-width: 1100px; margin: 0 auto; }
+    @media (max-width: 900px) {
+      .wrap { padding: 12px 14px 24px; }
+      h1 { font-size: 24px; }
+    }
     .kicker { letter-spacing: .18em; text-transform: uppercase; font-size: 11px; color: var(--gold); }
     h1 { font-family: var(--display); font-weight: 600; font-size: 36px; margin: 0 0 8px; }
     header p { max-width: 640px; color: var(--muted); }

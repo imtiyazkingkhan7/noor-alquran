@@ -39,7 +39,7 @@
           <span>Prev</span>
           <strong>{{ leaf() === 0 ? 'Para ' + ((detail()!.num) - 1) : leaf() }}</strong>
         </button>
-        <div class="page-stage">
+        <div class="page-stage" (touchstart)="onSwipeStart($event)" (touchend)="onSwipeEnd($event)">
           <header class="surah-banner">
             @for (surah of pageSurahs(); track surah.num) {
               <span class="surah-chip" [class.on]="surah.num === currentSurah()">
@@ -47,6 +47,7 @@
                 <small>{{ surah.en }}</small>
               </span>
             }
+            <span class="leaf-chip">{{ leaf() + 1 }} / {{ pages().length || 1 }}</span>
           </header>
           <div class="sheet-wrap">
             <article class="sheet" dir="rtl">
@@ -82,7 +83,7 @@
                           [class.now]="wordTone(token.ayah, token.index) === 'current'"
                           [class.bad]="wordTone(token.ayah, token.index) === 'wrong'"
                           (click)="select(token.ayah)"
-                        >{{ token.text }}</span>
+                        >@if (token.letters.length) {@for (letter of token.letters; track $index) {<span [class]="'t ' + (letter.rule || 'none')">{{ letter.glyph }}</span>}} @else { {{ token.text }} }</span>
                       } @else if (token.kind === 'close') {
                         <span class="ayah-cluster">
                           @if (token.text) {
@@ -93,7 +94,7 @@
                               [class.now]="wordTone(token.ayah, token.index) === 'current'"
                               [class.bad]="wordTone(token.ayah, token.index) === 'wrong'"
                               (click)="select(token.ayah)"
-                            >{{ token.text }}</span>
+                            >@if (token.letters.length) {@for (letter of token.letters; track $index) {<span [class]="'t ' + (letter.rule || 'none')">{{ letter.glyph }}</span>}} @else { {{ token.text }} }</span>
                           }
                           <button
                             type="button"
@@ -125,6 +126,35 @@
         </button>
       </div>
     }
+    <div class="phone-dock">
+      <details class="phone-legend">
+        <summary>Tajweed colors</summary>
+        <ul class="tajweed-legend">
+          @for (item of legend; track item.id) {
+            <li><span class="swatch" [class]="item.id"></span>{{ item.label }}</li>
+          }
+        </ul>
+      </details>
+      @if (teacher.listening() || teacher.halted() || teacherNote()) {
+        <aside class="phone-coach" [class.stop]="teacher.halted()">
+          <strong>{{ teacher.halted() ? 'STOP' : 'Teacher' }}</strong>
+          <p>{{ teacherNote() || teacher.message() }}</p>
+          @if (teacher.halted()) {
+            <button type="button" (click)="startTeacher()">Try again</button>
+          }
+        </aside>
+      }
+      <div class="phone-bar">
+        <button type="button" (click)="goLeaf(leaf() - 1)" [disabled]="detail()?.num === 1 && leaf() === 0" aria-label="Previous page">‹</button>
+        <button type="button" (click)="playing() && chaining() ? stop() : playPage()">
+          {{ playing() && chaining() ? 'Stop' : 'Play' }}
+        </button>
+        <button type="button" class="recite" [class.live]="teacher.listening()" (click)="startTeacher()">
+          {{ teacher.listening() ? 'Listening…' : 'Recite' }}
+        </button>
+        <button type="button" (click)="goLeaf(leaf() + 1)" [disabled]="detail()?.num === 30 && leaf() === pages().length - 1" aria-label="Next page">›</button>
+      </div>
+    </div>
   </div>
 
   <aside class="rail">
@@ -152,6 +182,11 @@
         {{ teacher.listening() ? 'Teacher is listening…' : 'Recite to teacher' }}
       </button>
     </div>
+    <ul class="tajweed-legend rail-legend">
+      @for (item of legend; track item.id) {
+        <li><span class="swatch" [class]="item.id"></span>{{ item.label }}</li>
+      }
+    </ul>
 
     <section class="prayer-card">
       <div class="prayer-head">

@@ -198,6 +198,19 @@
   margin: 0 0 8px;
 }
 
+.leaf-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--panel-line);
+  border-radius: 999px;
+  background: rgba(18, 34, 28, 0.88);
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
 .surah-chip {
   display: flex;
   flex-direction: column;
@@ -462,9 +475,19 @@
   font-weight: normal;
 }
 
+.mushaf-line .word .t {
+  font: inherit;
+  line-height: inherit;
+}
+
 .word.done { background: #cfe8b8; }
 .word.now { background: #f0c94b; }
 .word.bad { background: #f0b4b4; }
+
+.rail-legend {
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-line);
+}
 
 .ayah-cluster {
   display: inline-flex;
@@ -644,7 +667,8 @@
 }
 
 .para-fab,
-.para-mask { display: none; }
+.para-mask,
+.phone-dock { display: none; }
 
 @media (max-width: 1100px) {
   :host { height: calc(100dvh - var(--top-h) - var(--tab-h)); }
@@ -684,17 +708,103 @@
   #sidebar.open { transform: none; }
   .rail { display: none; }
   .toolbar { flex-direction: row; flex-wrap: wrap; }
-  #main { padding: 8px 8px 12px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+  #main { padding: 4px 6px 0; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
   .page-row { gap: 4px; flex: 1; min-height: 0; align-items: stretch; }
   .page-side { display: none; }
-  .page-stage { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .surah-banner { margin: 4px 0 6px; padding-top: 28px; }
+  .page-stage { flex: 1; min-width: 0; display: flex; flex-direction: column; touch-action: pan-y; }
+  .surah-banner { margin: 2px 0 4px; padding-top: 28px; gap: 6px; width: 100%; }
+  .surah-chip { min-width: 0; padding: 4px 10px; }
+  .surah-chip b { font-size: 18px; }
   .sheet-wrap { flex: 1; min-height: 0; display: grid; place-items: center; }
   .sheet {
     height: auto;
-    width: min(100%, calc((100dvh - var(--top-h) - var(--tab-h) - 88px) * 434 / 612));
-    max-height: calc(100dvh - var(--top-h) - var(--tab-h) - 88px);
+    width: min(100%, calc((100dvh - var(--top-h) - var(--tab-h) - var(--dock-h) - 56px) * 434 / 612));
+    max-height: calc(100dvh - var(--top-h) - var(--tab-h) - var(--dock-h) - 56px);
     aspect-ratio: 434 / 612;
     zoom: 1;
+  }
+  .phone-legend {
+    position: relative;
+    color: var(--ink-dim);
+    font-size: 11px;
+    margin: 0 2px 6px;
+  }
+  .phone-legend summary { cursor: pointer; color: var(--gold); font-weight: 600; letter-spacing: 0.04em; }
+  .phone-legend .tajweed-legend {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 6px);
+    z-index: 6;
+    margin: 0;
+    padding: 10px;
+    border-radius: 12px;
+    background: rgba(14, 28, 23, 0.96);
+    border: 1px solid var(--panel-line);
+    box-shadow: var(--shadow);
+  }
+  .phone-legend[open] .tajweed-legend { display: flex; }
+  .phone-dock {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    position: relative;
+    gap: 0;
+    padding: 6px 8px 8px;
+    min-height: var(--dock-h);
+  }
+  .phone-bar {
+    display: grid;
+    grid-template-columns: 44px 1fr 1.45fr 44px;
+    gap: 6px;
+  }
+  .phone-bar button {
+    border: 1px solid var(--panel-line);
+    background: rgba(18, 34, 28, 0.92);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 10px 8px;
+    font: 600 13px var(--ui);
+    cursor: pointer;
+  }
+  .phone-bar button:disabled { opacity: 0.35; }
+  .phone-bar .recite {
+    background: #6b1d1d;
+    border-color: #8a1f1f;
+    color: #fff;
+    letter-spacing: 0.04em;
+  }
+  .phone-bar .recite.live { background: #a12626; }
+  .phone-coach {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: calc(100% - 2px);
+    z-index: 5;
+    border-radius: 14px;
+    padding: 8px 10px;
+    background: rgba(14, 28, 23, 0.96);
+    border: 1px solid var(--panel-line);
+    box-shadow: var(--shadow);
+  }
+  .phone-coach.stop { background: #3a1515; border-color: #8a1f1f; }
+  .phone-coach strong {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .phone-coach p { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
+  .phone-coach button {
+    margin-top: 8px;
+    border: 0;
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: linear-gradient(180deg, var(--gold-2), var(--gold));
+    color: #0f1a17;
+    font: 600 12px var(--ui);
+    cursor: pointer;
   }
 }

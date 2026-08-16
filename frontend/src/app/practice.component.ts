@@ -1,22 +1,20 @@
 import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { QuranApi } from './quran.api';
+import { ReadingStore } from './reading.store';
 import { TeacherHalt, TeacherSession } from './teacher.session';
-import { AyahView, ReaderSurah } from './models';
+import { AyahView, ReaderSurah, TAJWEED_LEGEND } from './models';
 
 @Component({
   selector: 'app-practice',
   imports: [FormsModule],
   template: `
-    <div class="wrap">
-      <header>
+    <div class="recite-app">
+      <header class="head">
         <p class="kicker">Teacher</p>
-        <h1>Recite. If it is wrong, I will stop you.</h1>
-        <p>
-          Choose an ayah, press Recite, and read with Tajweed. If a word is wrong or you rush
-          without Tajweed, the teacher stops you, speaks, and plays the correct recitation.
-          Use Chrome and allow the microphone. This is a practice aid, not a sheikh.
-        </p>
+        <h1>Recite</h1>
+        <p class="lede">I stop you on a mistake, then play the correct ayah. Use Chrome and allow the microphone.</p>
       </header>
 
       <div class="pick">
@@ -37,7 +35,7 @@ import { AyahView, ReaderSurah } from './models';
       </div>
 
       @if (ayah(); as current) {
-        <section class="card">
+        <section class="ayah-card">
           <p class="arabic" dir="rtl">
             @for (word of current.words; track word.index) {
               <span
@@ -45,66 +43,146 @@ import { AyahView, ReaderSurah } from './models';
                 [class.bad]="haltWord() === word.index"
                 [class.ok]="teacher.matchedThrough() >= word.index && haltWord() !== word.index"
                 [class.now]="teacher.currentWord() === word.index && (teacher.listening() || teacher.halted()) && haltWord() !== word.index"
-              >@for (letter of word.letters; track $index) {<span class="t" [class]="letter.rule">{{ letter.glyph }}</span>}</span>
+              >@for (letter of word.letters; track $index) {<span [class]="'t ' + (letter.rule || 'none')">{{ letter.glyph }}</span>}</span>
             }
           </p>
+          <details class="legend-box">
+            <summary>Tajweed colors</summary>
+            <ul class="tajweed-legend">
+              @for (item of legend; track item.id) {
+                <li><span class="swatch" [class]="item.id"></span>{{ item.label }}</li>
+              }
+            </ul>
+          </details>
           <p class="meaning">{{ current.translation }}</p>
-          <div class="actions">
-            <button type="button" class="primary" (click)="play(current)">Listen</button>
-            <button type="button" [class.live]="teacher.listening()" (click)="startTeacher()">
-              {{ teacher.listening() ? 'Listening…' : 'Recite to teacher' }}
-            </button>
-            <button type="button" (click)="stopAll()">Stop</button>
-          </div>
         </section>
       }
 
-      <aside class="teacher" [class.stop]="teacher.halted()">
-        <p class="score">{{ teacher.halted() ? 'STOP' : (teacher.listening() ? 'Listening' : 'Ready') }}</p>
-        <p>{{ note() || teacher.message() || 'Press Recite to teacher, then read the ayah.' }}</p>
+      <aside class="teacher" [class.stop]="teacher.halted()" [class.live]="teacher.listening()">
+        <p class="score">{{ statusLabel() }}</p>
+        <p class="msg">{{ note() || teacher.message() || 'Press Recite, then read this ayah with Tajweed.' }}</p>
         @if (teacher.heard()) {
           <p class="heard" dir="rtl">{{ teacher.heard() }}</p>
         }
+        @if (teacher.halted()) {
+          <button type="button" class="retry" (click)="startTeacher()">Try this ayah again</button>
+        }
       </aside>
+
+      <div class="dock">
+        <button type="button" [disabled]="!ayah()" (click)="ayah() && play(ayah()!)">Listen</button>
+        <button type="button" class="recite" [class.live]="teacher.listening()" (click)="startTeacher()">
+          {{ teacher.listening() ? 'Listening…' : 'Recite' }}
+        </button>
+        <button type="button" (click)="stopAll()">Stop</button>
+      </div>
     </div>
   `,
   styles: [`
-    .wrap { padding: 32px 28px 48px; max-width: 860px; margin: 0 auto; }
-    @media (max-width: 900px) {
-      .wrap { padding: 12px 14px 24px; }
-      h1 { font-size: 22px; }
-      header p { display: none; }
-      .pick { margin: 12px 0; flex-wrap: wrap; gap: 8px; }
-      select { min-width: 0; flex: 1; }
-      .arabic { font-size: 28px; line-height: 1.9; }
-      .actions { position: sticky; bottom: 8px; }
-      .actions button { flex: 1; padding: 12px 10px; }
+    :host { display: block; height: 100%; }
+    .recite-app {
+      height: 100%;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 20px 22px 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
-    .kicker { letter-spacing: .18em; text-transform: uppercase; font-size: 11px; color: var(--gold); }
-    h1 { font-family: var(--display); font-weight: 600; font-size: 36px; margin: 0 0 8px; }
-    header p { color: var(--muted); line-height: 1.55; max-width: 620px; }
-    .pick { display: flex; gap: 16px; margin: 24px 0; }
-    label { display: grid; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-    select { min-width: 180px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--inset); color: var(--ink); font: inherit; }
-    .card { background: var(--paper); color: var(--ink-dark); border-radius: 18px; padding: 24px; box-shadow: var(--shadow); }
+    .head { flex: 0 0 auto; }
+    .kicker { margin: 0 0 4px; letter-spacing: .18em; text-transform: uppercase; font-size: 11px; color: var(--gold); }
+    h1 { font-family: var(--display); font-weight: 600; font-size: 36px; margin: 0 0 6px; }
+    .lede { color: var(--muted); line-height: 1.5; max-width: 620px; margin: 0; }
+    .pick { display: flex; gap: 12px; margin: 16px 0 12px; flex: 0 0 auto; }
+    label { display: grid; gap: 6px; flex: 1; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    select { width: 100%; min-width: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--inset); color: var(--ink); font: inherit; }
+    .ayah-card {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      background: var(--paper);
+      color: var(--ink-dark);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
     .arabic { font-family: var(--arabic); font-size: 34px; line-height: 2.1; margin: 0; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 0.28em; }
+    .legend-box { margin: 12px 0 0; color: #5c4e3a; }
+    .legend-box summary { cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+    .tajweed-legend { margin: 10px 0 0; }
     .word { display: inline-flex; padding: 0 4px; border-radius: 4px; transition: background-color 0.16s ease; }
     .word.bad { background: #f0c9c2; }
     .word.ok { background: #cfe8b8; }
     .word.now { background: #f0c94b; }
-    .meaning { color: #5c4e3a; }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    button { border: 1px solid var(--line); background: #fff; padding: 9px 14px; border-radius: 999px; cursor: pointer; font: 500 13px var(--ui); }
-    .primary { background: #12221c; color: #f4ead7; border-color: #12221c; }
-    .live { background: #8a2b2b; color: #fff; border-color: #8a2b2b; }
-    .teacher { margin-top: 16px; background: linear-gradient(180deg, rgba(24,48,40,.95), rgba(14,28,23,.95)); color: var(--ink); border: 1px solid var(--line); border-radius: 18px; padding: 20px; }
+    .meaning { color: #5c4e3a; margin: 12px 0 0; }
+    .teacher {
+      flex: 0 0 auto;
+      margin-top: 12px;
+      background: linear-gradient(180deg, rgba(24,48,40,.95), rgba(14,28,23,.95));
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+    }
+    .teacher.live { border-color: var(--gold); }
     .teacher.stop { background: #3a1515; border-color: #8a1f1f; }
-    .score { font-family: var(--display); font-size: 28px; margin: 0 0 8px; color: var(--gold); }
-    .heard { font-family: var(--arabic); font-size: 20px; }
+    .score { font-family: var(--display); font-size: 24px; margin: 0 0 4px; color: var(--gold); }
+    .teacher.stop .score { color: #f0c9c2; }
+    .msg { margin: 0; line-height: 1.45; }
+    .heard { font-family: var(--arabic); font-size: 20px; margin: 8px 0 0; }
+    .retry {
+      margin-top: 10px;
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: linear-gradient(180deg, var(--gold-2), var(--gold));
+      color: #0f1a17;
+      font: 600 13px var(--ui);
+      cursor: pointer;
+    }
+    .dock {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1.5fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+      position: sticky;
+      bottom: 0;
+    }
+    .dock button {
+      border: 1px solid var(--line);
+      background: rgba(18, 34, 28, 0.92);
+      color: var(--ink);
+      padding: 12px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font: 600 14px var(--ui);
+    }
+    .dock button:disabled { opacity: 0.4; }
+    .dock .recite {
+      background: #6b1d1d;
+      border-color: #8a1f1f;
+      color: #fff;
+      letter-spacing: 0.04em;
+    }
+    .dock .recite.live { background: #a12626; }
+    @media (max-width: 900px) {
+      .recite-app { padding: 10px 12px 8px; }
+      h1 { font-size: 24px; }
+      .lede { display: none; }
+      .pick { margin: 8px 0; gap: 8px; }
+      .arabic { font-size: 28px; line-height: 1.9; }
+      .ayah-card { padding: 14px; }
+      .teacher { padding: 12px; }
+      .score { font-size: 22px; }
+      .dock button { padding: 13px 8px; }
+    }
   `]
 })
 export class PracticeComponent implements OnDestroy {
   private readonly api = inject(QuranApi);
+  private readonly route = inject(ActivatedRoute);
+  readonly store = inject(ReadingStore);
   readonly teacher = inject(TeacherSession);
   readonly surahs = signal<ReaderSurah[]>([]);
   readonly loaded = signal<ReaderSurah | null>(null);
@@ -113,14 +191,29 @@ export class PracticeComponent implements OnDestroy {
   readonly ayah = signal<AyahView | null>(null);
   readonly haltWord = signal(-1);
   readonly note = signal('');
+  readonly legend = TAJWEED_LEGEND;
   private audio?: HTMLAudioElement;
 
   constructor() {
     this.api.surahs().subscribe((surahs) => {
       this.surahs.set(surahs);
-      this.surahNo.set(surahs[0]?.num ?? 1);
+      const querySurah = Number(this.route.snapshot.queryParamMap.get('surah') || 0);
+      const queryAyah = Number(this.route.snapshot.queryParamMap.get('ayah') || 0);
+      const progress = this.store.progress();
+      this.surahNo.set(querySurah || progress.surah || surahs[0]?.num || 1);
+      this.ayahNo.set(queryAyah || progress.ayah || 1);
       this.loadAyah();
     });
+  }
+
+  statusLabel(): string {
+    if (this.teacher.halted()) {
+      return 'STOP';
+    }
+    if (this.teacher.listening()) {
+      return 'Listening';
+    }
+    return 'Ready';
   }
 
   ayahNumbers(): number[] {
@@ -148,7 +241,10 @@ export class PracticeComponent implements OnDestroy {
         return;
       }
       this.ayahNo.set(readerAyah.n);
-      this.api.verse(detail.num, readerAyah.n).subscribe((ayah) => this.ayah.set(ayah));
+      this.api.verse(detail.num, readerAyah.n).subscribe((ayah) => {
+        this.ayah.set(ayah);
+        this.store.mark({ page: ayah.page || 1, surah: ayah.surah, ayah: ayah.ayah });
+      });
     });
   }
 

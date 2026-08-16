@@ -32,6 +32,8 @@ public class TajweedEngine {
     private static final int TANWEEN_KASRA = 0x064D;
     private static final int MADDAH = 0x0653;
     private static final int DAGGER_ALEF = 0x0670;
+    private static final int HAMZA_ABOVE = 0x0654;
+    private static final int HAMZA_BELOW = 0x0655;
     private static final int SUBSCRIPT_ALEF = 0x0656;
     private static final int INVERTED_DAMMA = 0x0657;
     private static final int JAZM = 0x06E1;
@@ -217,7 +219,7 @@ public class TajweedEngine {
         boolean silah = isSilah(cluster, next == null ? null : next.cluster, all);
         boolean dagger = cluster.hasDaggerAlef;
         boolean maddah = cluster.hasMaddah;
-        boolean alifMadd = isAlif(letter) && prev != null && prev.hasFatha && !prev.hasTanween && !cluster.hasShortVowel;
+        boolean alifMadd = isAlif(letter) && prev != null && prev.hasFatha && !prev.hasTanween && !cluster.hasShortVowel();
         boolean wawMadd = (letter == 'و' || letter == (char) SMALL_WAW)
                 && isMaddCarrier(cluster)
                 && prev != null
@@ -284,11 +286,11 @@ public class TajweedEngine {
     }
 
     private boolean isMaddCarrier(Cluster cluster) {
-        return !cluster.hasShortVowel && !cluster.hasTanween && !cluster.hasShadda;
+        return !cluster.hasShortVowel() && !cluster.hasTanween && !cluster.hasShadda;
     }
 
     private boolean isSakinah(Cluster cluster) {
-        if (cluster.hasShadda || cluster.hasTanween || cluster.hasDaggerAlef || cluster.hasShortVowel) {
+        if (cluster.hasShadda || cluster.hasTanween || cluster.hasDaggerAlef || cluster.hasShortVowel()) {
             return false;
         }
         return cluster.hasSukun || isMaddCarrier(cluster);
@@ -304,10 +306,10 @@ public class TajweedEngine {
 
     private boolean isHamzaSound(Cluster cluster) {
         char b = cluster.baseLetter;
-        if ("ءأإآؤئ".indexOf(b) >= 0) {
+        if ("ءأإآؤئ".indexOf(b) >= 0 || cluster.hasHamzaMark) {
             return true;
         }
-        return isAlif(b) && cluster.wordStart && cluster.hasShortVowel;
+        return isAlif(b) && cluster.wordStart && cluster.hasShortVowel();
     }
 
     private boolean isWasl(Cluster cluster) {
@@ -316,7 +318,7 @@ public class TajweedEngine {
         }
         return isAlif(cluster.baseLetter)
                 && cluster.wordStart
-                && !cluster.hasShortVowel
+                && !cluster.hasShortVowel()
                 && !cluster.hasMaddah
                 && !cluster.hasTanween
                 && !cluster.hasDaggerAlef;
@@ -324,6 +326,15 @@ public class TajweedEngine {
 
     private boolean isAlif(char letter) {
         return letter == 'ا' || letter == 'ٱ' || letter == 'آ';
+    }
+
+    private boolean isTanweenCarrier(Cluster cluster) {
+        char letter = cluster.baseLetter;
+        return (isAlif(letter) || letter == 'ى')
+                && !cluster.hasShortVowel()
+                && !cluster.hasShadda
+                && !cluster.hasTanween
+                && !cluster.hasHamzaMark;
     }
 
     private Next nextLetter(Cluster from, List<Cluster> all) {
@@ -342,6 +353,9 @@ public class TajweedEngine {
                 continue;
             }
             if (cluster.baseLetter == (char) SMALL_WAW || cluster.baseLetter == (char) SMALL_YEH) {
+                continue;
+            }
+            if (!crossed && from.hasTanween && isTanweenCarrier(cluster)) {
                 continue;
             }
             return new Next(cluster, crossed);
@@ -419,6 +433,7 @@ public class TajweedEngine {
             boolean smallMeem = false;
             boolean subscriptAlef = false;
             boolean invertedDamma = false;
+            boolean hamzaMark = false;
             while (i < cleaned.length()) {
                 int mark = cleaned.codePointAt(i);
                 if (!isMark(mark)) {
@@ -459,6 +474,9 @@ public class TajweedEngine {
                 if (mark == INVERTED_DAMMA) {
                     invertedDamma = true;
                 }
+                if (mark == HAMZA_ABOVE || mark == HAMZA_BELOW) {
+                    hamzaMark = true;
+                }
                 i += Character.charCount(mark);
             }
             clusters.add(new Cluster(
@@ -477,6 +495,7 @@ public class TajweedEngine {
                     smallMeem,
                     subscriptAlef,
                     invertedDamma,
+                    hamzaMark,
                     wordStart,
                     false
             ));
@@ -582,6 +601,7 @@ public class TajweedEngine {
             boolean hasSmallMeem,
             boolean hasSubscriptAlef,
             boolean hasInvertedDamma,
+            boolean hasHamzaMark,
             boolean wordStart,
             boolean whitespace
     ) {
@@ -592,7 +612,7 @@ public class TajweedEngine {
         static Cluster space(int index) {
             return new Cluster(
                     index, " ", false, ' ', false, false, false, false, false,
-                    false, false, false, false, false, false, false, true
+                    false, false, false, false, false, false, false, false, true
             );
         }
     }

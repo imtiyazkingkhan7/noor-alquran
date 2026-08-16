@@ -29,8 +29,9 @@
   --ui: "Outfit", system-ui, sans-serif;
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
   --radius: 18px;
-  --top-h: 68px;
+  --top-h: 64px;
   --tab-h: 0px;
+  --dock-h: 0px;
 }
 
 * { box-sizing: border-box; }
@@ -55,6 +56,14 @@ a { color: inherit; }
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.shell.immersive {
+  --top-h: 0px;
+}
+
+.shell.immersive .top {
+  display: none;
 }
 
 .top {
@@ -213,41 +222,81 @@ a { color: inherit; }
   font: inherit;
 }
 
-.t.ghunnah { color: #c45c26; }
-.t.ikhfa { color: #2f7d4a; }
-.t.idgham { color: #1f7a66; }
-.t.idgham-no-ghunnah { color: #3d6b8a; }
-.t.iqlab { color: #3b5bcc; }
-.t.izhar { color: #8a6b2b; }
-.t.qalqalah { color: #2a6fbf; }
-.t.madd { color: #b42318; }
-.t.ikhfa-shafawi { color: #2f7d4a; }
-.t.idgham-shafawi { color: #1f7a66; }
-.t.izhar-shafawi { color: #8a6b2b; }
+.t {
+  display: inline;
+  font: inherit;
+  line-height: inherit;
+}
+.t.ghunnah { color: #d35400; }
+.t.ikhfa { color: #1e8449; }
+.t.idgham { color: #0e6655; }
+.t.idgham-no-ghunnah { color: #1a5276; }
+.t.iqlab { color: #1f618d; }
+.t.izhar { color: #9a7b2f; }
+.t.qalqalah { color: #2471a3; }
+.t.madd,
+.t.madd-tabii { color: #e74c3c; }
+.t.madd-munfasil { color: #c0392b; }
+.t.madd-muttasil { color: #a93226; }
+.t.madd-lazim { color: #7b241c; }
+.t.madd-lin { color: #f1948a; }
+.t.ikhfa-shafawi { color: #117a65; }
+.t.idgham-shafawi { color: #0e6655; }
+.t.izhar-shafawi { color: #9a7b2f; }
 .t.none { color: inherit; }
 
-.swatch.ghunnah { background: #c45c26; }
-.swatch.ikhfa, .swatch.ikhfa-shafawi { background: #2f7d4a; }
-.swatch.idgham, .swatch.idgham-shafawi { background: #1f7a66; }
-.swatch.idgham-no-ghunnah { background: #3d6b8a; }
-.swatch.iqlab { background: #3b5bcc; }
-.swatch.izhar, .swatch.izhar-shafawi { background: #8a6b2b; }
-.swatch.qalqalah { background: #2a6fbf; }
-.swatch.madd { background: #b42318; }
+.swatch.ghunnah { background: #d35400; }
+.swatch.ikhfa { background: #1e8449; }
+.swatch.ikhfa-shafawi { background: #117a65; }
+.swatch.idgham, .swatch.idgham-shafawi { background: #0e6655; }
+.swatch.idgham-no-ghunnah { background: #1a5276; }
+.swatch.iqlab { background: #1f618d; }
+.swatch.izhar, .swatch.izhar-shafawi { background: #9a7b2f; }
+.swatch.qalqalah { background: #2471a3; }
+.swatch.madd, .swatch.madd-tabii { background: #e74c3c; }
+.swatch.madd-munfasil { background: #c0392b; }
+.swatch.madd-muttasil { background: #a93226; }
+.swatch.madd-lazim { background: #7b241c; }
+.swatch.madd-lin { background: #f1948a; }
+
+.tajweed-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tajweed-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--muted, #b7c4bc);
+}
+.tajweed-legend .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
 
 @media (max-width: 900px) {
   :root {
-    --top-h: 52px;
-    --tab-h: calc(58px + env(safe-area-inset-bottom));
+    --top-h: 48px;
+    --tab-h: calc(56px + env(safe-area-inset-bottom));
+    --dock-h: 72px;
   }
   .top {
     height: var(--top-h);
     padding: 0 12px;
     padding-top: env(safe-area-inset-top);
   }
-  .brand strong { font-size: 18px; }
+  .brand { gap: 8px; }
+  .brand strong { font-size: 17px; line-height: 1.1; }
   .brand small { font-size: 8px; }
-  .mark { width: 36px; height: 36px; }
+  .mark { width: 32px; height: 32px; }
   .desktop-nav { display: none; }
   .tabbar {
     display: grid;
@@ -273,6 +322,21 @@ a { color: inherit; }
   }
   .tabbar a.on { color: var(--gold); }
   .tab-ico { font-size: 16px; line-height: 1; }
+  .tabbar a.recite-tab { color: var(--gold); }
+  .tabbar a.recite-tab .tab-ico {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold);
+    background: rgba(201, 162, 75, 0.2);
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+  }
+  .tabbar a.recite-tab.on .tab-ico {
+    background: linear-gradient(180deg, var(--gold-2), var(--gold));
+    color: #0f1a17;
+  }
 }
 
 @media (max-width: 760px) {

@@ -66,8 +66,12 @@ public final class QuranDtos {
             String ar,
             String en,
             boolean rukuEnds,
-            boolean surahStarts
+            boolean surahStarts,
+            List<WordToken> words
     ) {
+        public JuzAyah {
+            words = words == null ? List.of() : words;
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

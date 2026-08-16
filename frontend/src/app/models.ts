@@ -7,6 +7,7 @@ export interface ReaderAyah {
   surahEn?: string;
   surahAr?: string;
   surahStarts?: boolean;
+  words?: WordToken[];
 }
 
 export interface ReaderSurah {
@@ -154,11 +155,15 @@ export const TAJWEED_LEGEND: { id: string; label: string }[] = [
   { id: 'ghunnah', label: 'Ghunnah' },
   { id: 'ikhfa', label: 'Ikhfa' },
   { id: 'idgham', label: 'Idgham + ghunnah' },
-  { id: 'idgham-no-ghunnah', label: 'Idgham' },
+  { id: 'idgham-no-ghunnah', label: 'Idgham without ghunnah' },
   { id: 'iqlab', label: 'Iqlab' },
   { id: 'izhar', label: 'Izhar' },
   { id: 'qalqalah', label: 'Qalqalah' },
-  { id: 'madd', label: 'Madd' },
+  { id: 'madd-tabii', label: "Madd tabi'i" },
+  { id: 'madd-munfasil', label: 'Madd munfasil' },
+  { id: 'madd-muttasil', label: 'Madd muttasil' },
+  { id: 'madd-lazim', label: 'Madd lazim' },
+  { id: 'madd-lin', label: 'Madd lin' },
   { id: 'ikhfa-shafawi', label: 'Ikhfa shafawi' },
   { id: 'idgham-shafawi', label: 'Idgham shafawi' },
   { id: 'izhar-shafawi', label: 'Izhar shafawi' }
