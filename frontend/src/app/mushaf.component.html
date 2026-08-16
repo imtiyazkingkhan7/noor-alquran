@@ -40,14 +40,8 @@
           <strong>{{ leaf() === 0 ? 'Para ' + ((detail()!.num) - 1) : leaf() }}</strong>
         </button>
         <div class="page-stage" (touchstart)="onSwipeStart($event)" (touchend)="onSwipeEnd($event)">
-          <header class="surah-banner">
-            @for (surah of pageSurahs(); track surah.num) {
-              <span class="surah-chip" [class.on]="surah.num === currentSurah()">
-                <b dir="rtl">{{ surah.ar }}</b>
-                <small>{{ surah.en }}</small>
-              </span>
-            }
-            <span class="leaf-chip">{{ leaf() + 1 }} / {{ pages().length || 1 }}</span>
+          <header class="page-kicker">
+            <span class="surah-head" dir="rtl">{{ headerSurah().ar }}</span>
           </header>
           <div class="sheet-wrap">
             <article class="sheet" dir="rtl">

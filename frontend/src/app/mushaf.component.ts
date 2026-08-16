@@ -55,6 +55,7 @@ export class MushafComponent implements OnDestroy {
   private observer?: ResizeObserver;
   private lastPack = '';
   private pendingLastLeaf = false;
+  private keepPlaying = false;
   private pageQueue: ReaderAyah[] = [];
   private queueIndex = 0;
   private playGen = 0;
@@ -83,6 +84,9 @@ export class MushafComponent implements OnDestroy {
               this.currentSurah.set(surah);
             }
             this.showLeafFor(this.currentSurah(), ayah);
+          }
+          if (this.keepPlaying) {
+            window.setTimeout(() => this.startPageQueue(this.pageAyahs()), 40);
           }
           return;
         }
@@ -173,6 +177,12 @@ export class MushafComponent implements OnDestroy {
     return list;
   }
 
+  headerSurah(): { ar: string; en: string } {
+    const list = this.pageSurahs();
+    const current = list.find((row) => row.num === this.currentSurah());
+    return current ?? list[0] ?? { ar: '', en: '' };
+  }
+
   lineKind(line: Line): 'text' | 'title' | 'basmala' {
     if (line.tokens.some((token) => token.kind === 'basmala')) {
       return 'basmala';
@@ -239,9 +249,11 @@ export class MushafComponent implements OnDestroy {
     if (number < 1 || number > 30) {
       return;
     }
+    const resume = this.keepPlaying;
     this.loading.set(true);
     this.error.set('');
     this.stop();
+    this.keepPlaying = resume;
     this.teacher.stop();
     this.haltWord.set(-1);
     this.api.para(number).subscribe({
@@ -266,6 +278,9 @@ export class MushafComponent implements OnDestroy {
           } else {
             const fromAyah = ayah ? leafIndexFor(this.pages(), this.currentSurah(), ayah) : leaf;
             this.leaf.set(Math.max(0, Math.min(fromAyah, Math.max(this.pages().length - 1, 0))));
+          }
+          if (this.keepPlaying) {
+            this.startPageQueue(this.pageAyahs());
           }
         }, 40);
       },
@@ -355,12 +370,8 @@ export class MushafComponent implements OnDestroy {
   }
 
   playPage(): void {
-    this.pageQueue = this.pageAyahs();
-    this.queueIndex = 0;
-    const first = this.pageQueue[0];
-    if (first) {
-      this.playAyahAudio(first, true);
-    }
+    this.keepPlaying = true;
+    this.startPageQueue(this.pageAyahs());
   }
 
   playFromHere(): void {
@@ -372,10 +383,41 @@ export class MushafComponent implements OnDestroy {
     const index = onPage.findIndex((item) =>
       item.n === ayah.n && this.ayahSurah(item) === this.ayahSurah(ayah)
     );
-    this.pageQueue = index < 0 ? onPage : onPage.slice(index);
+    this.keepPlaying = true;
+    this.startPageQueue(index < 0 ? onPage : onPage.slice(index));
+  }
+
+  private startPageQueue(ayahs: ReaderAyah[]): void {
+    this.pageQueue = ayahs;
     this.queueIndex = 0;
-    const first = this.pageQueue[0] ?? ayah;
-    this.playAyahAudio(first, true);
+    const first = ayahs[0];
+    if (first) {
+      this.playAyahAudio(first, true);
+      return;
+    }
+    if (this.keepPlaying) {
+      this.advancePlay();
+    }
+  }
+
+  private advancePlay(): void {
+    if (!this.keepPlaying) {
+      return;
+    }
+    const pages = this.pages();
+    const para = this.detail()?.num ?? 1;
+    if (this.leaf() + 1 < pages.length) {
+      this.goLeaf(this.leaf() + 1);
+      return;
+    }
+    if (para < 30) {
+      this.goPara(para + 1, 1);
+      return;
+    }
+    this.keepPlaying = false;
+    this.chaining.set(false);
+    this.pageQueue = [];
+    this.queueIndex = 0;
   }
 
   startTeacher(): void {
@@ -402,6 +444,7 @@ export class MushafComponent implements OnDestroy {
   }
 
   stop(): void {
+    this.keepPlaying = false;
     this.chaining.set(false);
     this.pageQueue = [];
     this.queueIndex = 0;
@@ -467,7 +510,7 @@ export class MushafComponent implements OnDestroy {
     const font = `${size} "Al Majeed Quranic"`;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack10`;
+    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack11`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }
@@ -522,6 +565,8 @@ export class MushafComponent implements OnDestroy {
           const next = this.pageQueue[this.queueIndex];
           if (next) {
             this.playAyahAudio(next, true);
+          } else if (this.keepPlaying) {
+            this.advancePlay();
           } else {
             this.chaining.set(false);
             this.pageQueue = [];
@@ -532,6 +577,7 @@ export class MushafComponent implements OnDestroy {
           if (gen !== this.playGen) {
             return;
           }
+          this.keepPlaying = false;
           this.playing.set(false);
           this.chaining.set(false);
           this.pageQueue = [];
@@ -629,23 +675,19 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
     const words = ayah.ar.trim().split(/\s+/).filter(Boolean);
     if (!words.length) {
       add({ kind: 'close', ayah, index: 0, text: '', letters: [], ruku: !!ayah.rukuEnds }, MARK_SIZE);
-      if ((ayah.surah ?? 0) === 1 && ayah.n === 1) {
-        flush(true);
-      }
       continue;
     }
     words.forEach((text, index) => {
       const letters = ayah.words?.[index]?.letters ?? [];
       if (index === words.length - 1) {
-        const size = Math.min(maxWidth, Math.ceil(measure(text, font))) + WORD_GAP + MARK_SIZE;
-        add({ kind: 'close', ayah, index, text, letters, ruku: !!ayah.rukuEnds }, size);
+        add(
+          { kind: 'close', ayah, index, text, letters, ruku: !!ayah.rukuEnds },
+          Math.min(maxWidth, Math.ceil(measure(text, font)) + MARK_SIZE)
+        );
         return;
       }
       add({ kind: 'word', ayah, index, text, letters }, Math.min(maxWidth, Math.ceil(measure(text, font))));
     });
-    if ((ayah.surah ?? 0) === 1 && ayah.n === 1) {
-      flush(true);
-    }
   }
   flush(true);
   return lines;

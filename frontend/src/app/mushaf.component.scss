@@ -193,12 +193,25 @@
 }
 
 .surah-banner {
+  display: none;
+}
+
+.page-kicker {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  width: min(100%, 520px);
-  margin: 0 0 8px;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  margin: 0 0 6px;
+  padding: 0 4px;
+}
+
+.surah-head {
+  font-family: var(--quran);
+  font-size: 26px;
+  font-weight: normal;
+  color: var(--gold);
+  line-height: 1.2;
+  text-align: right;
 }
 
 .leaf-chip {
@@ -640,7 +653,8 @@
   .page-row { gap: 4px; flex: 1; min-height: 0; align-items: stretch; }
   .page-side { display: none; }
   .page-stage { flex: 1; min-width: 0; display: flex; flex-direction: column; touch-action: pan-y; }
-  .surah-banner { margin: 2px 0 4px; padding-top: 28px; gap: 6px; width: 100%; }
+  .page-kicker { margin: 2px 0 4px; padding: 28px 8px 0 0; width: 100%; justify-content: flex-end; }
+  .surah-head { font-size: 20px; }
   .surah-chip { min-width: 0; padding: 4px 10px; }
   .surah-chip b { font-size: 18px; }
   .sheet-wrap { flex: 1; min-height: 0; display: grid; place-items: center; }
