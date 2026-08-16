@@ -18,60 +18,53 @@ class RecitationAssessorTest {
     private final RecitationAssessor assessor = new RecitationAssessor();
 
     @Test
-    void wrongWordUsesOneShortTajweedLine() {
+    void wrongWordSpeaksTheCorrectLafz() {
         AyahView ayah = ayah(
                 List.of(
-                        word(0, "إِنَّا", "انا", "ghunnah"),
-                        word(1, "أَعْطَيْنَاكَ", "اعطيناك", "madd-munfasil")
-                ),
-                List.of("ghunnah", "madd-munfasil")
+                        word(0, "إِنَّا", "انا"),
+                        word(1, "أَعْطَيْنَاكَ", "اعطيناك")
+                )
         );
 
         ProgressResponse progress = assessor.progress(ayah, "foo", false, 2.0);
         assertTrue(progress.shouldStop());
-        assertEquals("Stop. Hold noon — ghunnah", progress.teacherMessage());
+        assertEquals(MaulanaLines.wrongWord("إِنَّا"), progress.teacherMessage());
         assertEquals(progress.teacherMessage(), progress.spokenMessage());
-        assertFalse(progress.teacherMessage().contains("Listen to the ayah"));
+        assertFalse(progress.teacherMessage().toLowerCase().contains("ghunnah"));
     }
 
     @Test
-    void rushedRecitationKeepsOneSentence() {
+    void rushedRecitationAsksToSlowDown() {
         AyahView ayah = ayah(
                 List.of(
-                        word(0, "إِنَّا", "انا", "ghunnah"),
-                        word(1, "أَعْطَيْنَاكَ", "اعطيناك", "madd-munfasil"),
-                        word(2, "الْكَوْثَرَ", "الكوثر", "madd-lin")
-                ),
-                List.of("ghunnah", "madd-munfasil", "madd-lin")
+                        word(0, "إِنَّا", "انا"),
+                        word(1, "أَعْطَيْنَاكَ", "اعطيناك"),
+                        word(2, "الْكَوْثَرَ", "الكوثر")
+                )
         );
 
         ProgressResponse progress = assessor.progress(ayah, "انا اعطيناك الكوثر", false, 0.2);
         assertTrue(progress.shouldStop());
-        assertTrue(progress.teacherMessage().startsWith("Stop. Too fast."));
-        assertTrue(progress.teacherMessage().contains("ghunnah") || progress.teacherMessage().contains("madd"));
+        assertTrue(progress.teacherMessage().contains("تیز"));
         assertEquals(progress.teacherMessage(), progress.spokenMessage());
     }
 
     @Test
-    void assessDoesNotLectureOnMismatch() {
-        AyahView ayah = ayah(
-                List.of(word(0, "قُلْ", "قل", "qalqalah")),
-                List.of("qalqalah", "madd-tabii", "ikhfa", "idgham")
-        );
+    void assessSaysTheCorrectWordOnMismatch() {
+        AyahView ayah = ayah(List.of(word(0, "قُلْ", "قل")));
 
         AssessResponse assess = assessor.assess(ayah, "foo", 1.0);
         assertTrue(assess.shouldStop());
-        assertEquals("Stop. Bounce the letter — qalqalah", assess.teacherMessage());
+        assertEquals(MaulanaLines.wrongWord("قُلْ"), assess.teacherMessage());
         assertEquals(assess.teacherMessage(), assess.spokenMessage());
-        assertTrue(assess.tajweedTips().size() <= 4);
-        assertTrue(assess.tajweedTips().stream().allMatch(tip -> !tip.contains("counts when")));
+        assertTrue(assess.tajweedTips().isEmpty());
     }
 
-    private static AyahView ayah(List<WordToken> words, List<String> rules) {
-        return new AyahView(108, 1, 1, 1, 1, 1, false, "text", "meaning", "", words, rules);
+    private static AyahView ayah(List<WordToken> words) {
+        return new AyahView(108, 1, 1, 1, 1, 1, false, "text", "meaning", "", words, List.of());
     }
 
-    private static WordToken word(int index, String text, String plain, String rule) {
-        return new WordToken(index, text, plain, List.of(new LetterToken(text, rule, rule)));
+    private static WordToken word(int index, String text, String plain) {
+        return new WordToken(index, text, plain, List.of(new LetterToken(text, "none", "none")));
     }
 }

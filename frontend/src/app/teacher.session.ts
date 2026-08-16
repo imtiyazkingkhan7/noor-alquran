@@ -2,25 +2,6 @@ import { Injectable, inject, signal } from '@angular/core';
 import { QuranApi } from './quran.api';
 import { AyahView, ProgressResponse, WordToken } from './models';
 
-const RULE_TIPS: Record<string, string> = {
-  ghunnah: 'Hold noon — ghunnah',
-  ikhfa: 'Hide noon — ikhfa',
-  'ikhfa-shafawi': 'Hide meem — ikhfa',
-  idgham: 'Merge noon — idgham',
-  'idgham-no-ghunnah': 'Merge fully — idgham',
-  'idgham-shafawi': 'Merge meem — idgham',
-  iqlab: 'Noon becomes meem — iqlab',
-  izhar: 'Say noon clearly — izhar',
-  'izhar-shafawi': 'Say meem clearly',
-  qalqalah: 'Bounce the letter — qalqalah',
-  madd: 'Stretch the vowel — madd',
-  'madd-tabii': 'Stretch the vowel — madd',
-  'madd-munfasil': 'Stretch the vowel — madd',
-  'madd-muttasil': 'Stretch the vowel — madd',
-  'madd-lazim': 'Hold the long madd',
-  'madd-lin': 'Stretch the vowel — madd'
-};
-
 interface SpeechRec {
   lang: string;
   interimResults: boolean;
@@ -69,16 +50,34 @@ export class TeacherSession {
   private onPass?: () => void;
   private onProgress?: () => void;
 
+  constructor() {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      return;
+    }
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', () => {
+      window.speechSynthesis.getVoices();
+    });
+  }
+
+  private clip?: HTMLAudioElement;
+
   speak(text: string): void {
     if (!text) {
       return;
     }
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'en-IN';
-    utter.rate = 0.92;
-    utter.pitch = 1;
-    window.speechSynthesis.speak(utter);
+    window.speechSynthesis?.cancel();
+    this.stopClip();
+    const prepared = toMaulanaUrdu(text);
+    const parts = prepared.split(/صحیح یہ ہے:\s*/);
+    const urdu = (parts[0] || prepared).trim();
+    const arabic = parts[1]?.trim();
+    void this.playMaulana(urdu, 'ur').then(() => {
+      if (arabic) {
+        return this.playMaulana(arabic, 'ar');
+      }
+      return undefined;
+    }).catch(() => this.speakBrowser(prepared, arabic));
   }
 
   start(
@@ -86,13 +85,14 @@ export class TeacherSession {
     handlers: { onHalt: (halt: TeacherHalt) => void; onPass: () => void; onProgress?: () => void }
   ): void {
     this.stopMic();
-    window.speechSynthesis.cancel();
+    this.stopClip();
+    window.speechSynthesis?.cancel();
     this.ayah = ayah;
     this.onHalt = handlers.onHalt;
     this.onPass = handlers.onPass;
     this.onProgress = handlers.onProgress;
     this.halted.set(false);
-    this.message.set('I am listening.');
+    this.message.set('میں سن رہا ہوں۔');
     this.heard.set('');
     this.matchedThrough.set(-1);
     this.currentWord.set(0);
@@ -106,7 +106,101 @@ export class TeacherSession {
     window.clearTimeout(this.timer);
     this.seq += 1;
     this.stopMic();
+    this.stopClip();
+    window.speechSynthesis?.cancel();
     this.listening.set(false);
+  }
+
+  private playMaulana(text: string, lang: 'ur' | 'ar'): Promise<void> {
+    if (!text) {
+      return Promise.resolve();
+    }
+    const url = `/api/teacher/speak?lang=${lang}&text=${encodeURIComponent(text)}`;
+    const clip = new Audio(url);
+    this.clip = clip;
+    return new Promise((resolve, reject) => {
+      clip.onended = () => resolve();
+      clip.onerror = () => reject(new Error('maulana-tts'));
+      void clip.play().then(undefined, reject);
+    });
+  }
+
+  private stopClip(): void {
+    if (!this.clip) {
+      return;
+    }
+    this.clip.pause();
+    this.clip.src = '';
+    this.clip = undefined;
+  }
+
+  private speakBrowser(urdu: string, arabic?: string): void {
+    if (!window.speechSynthesis) {
+      return;
+    }
+    const maulana = this.maulanaVoice();
+    const arabicVoice = this.arabicVoice() ?? maulana;
+    const say = (line: string, lang: string, voice: SpeechSynthesisVoice | null, next?: () => void) => {
+      if (!line) {
+        next?.();
+        return;
+      }
+      const utter = new SpeechSynthesisUtterance(line);
+      utter.lang = lang;
+      utter.rate = lang.startsWith('ar') ? 0.72 : 0.84;
+      utter.pitch = 0.76;
+      if (voice) {
+        utter.voice = voice;
+        utter.lang = voice.lang || lang;
+      }
+      if (next) {
+        utter.onend = next;
+      }
+      window.speechSynthesis.speak(utter);
+    };
+    if (arabic) {
+      say(urdu || 'رکو۔ صحیح یہ ہے', maulana?.lang || 'ur-PK', maulana, () => {
+        say(arabic, 'ar-SA', arabicVoice);
+      });
+      return;
+    }
+    say(urdu, maulana?.lang || 'ur-PK', maulana);
+  }
+
+  private maulanaVoice(): SpeechSynthesisVoice | null {
+    const voices = window.speechSynthesis.getVoices();
+    const scored = voices.map((voice) => ({ voice, score: this.voiceScore(voice) }));
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0]?.score ? scored[0].voice : null;
+  }
+
+  private arabicVoice(): SpeechSynthesisVoice | null {
+    const voices = window.speechSynthesis.getVoices();
+    return voices.find((voice) => /^ar([-_]|$)/i.test(voice.lang) || /arabic/i.test(voice.name)) ?? null;
+  }
+
+  private voiceScore(voice: SpeechSynthesisVoice): number {
+    const name = `${voice.name} ${voice.lang}`.toLowerCase();
+    let score = 0;
+    if (/urdu|\bur([-_]|$)/.test(name)) {
+      score += 80;
+    }
+    if (/hindi|\bhi([-_]|$)/.test(name)) {
+      score += 50;
+    }
+    if (/arabic|\bar([-_]|$)/.test(name)) {
+      score += 35;
+    }
+    if (/male|ravi|hemant|naayf|maged|tarik|farid|gulshan|kumar/.test(name)) {
+      score += 25;
+    }
+    if (/female|zira|hazel|samantha|karen|heera|kalpana/.test(name)) {
+      score -= 40;
+    }
+    if (/en[-_]/.test(name) && score < 35) {
+      score -= 20;
+    }
+    return score;
   }
 
   private listen(): void {
@@ -117,8 +211,8 @@ export class TeacherSession {
       ?? (window as unknown as { SpeechRecognition?: new () => SpeechRec }).SpeechRecognition;
     if (!Ctor) {
       this.halt({
-        spoken: 'Stop. Open Chrome and allow the microphone.',
-        written: 'Open Chrome and allow the microphone.',
+        spoken: 'رکو۔ کروم کھولو اور مائیکروفون کی اجازت دو۔',
+        written: 'رکو۔ کروم کھولو اور مائیکروفون کی اجازت دو۔',
         wordIndex: 0,
         heard: ''
       });
@@ -134,8 +228,8 @@ export class TeacherSession {
         return;
       }
       this.halt({
-        spoken: 'Stop. I could not hear clearly.',
-        written: 'I could not hear clearly.',
+        spoken: 'رکو۔ آواز صاف نہیں آئی۔ دوبارہ پڑھو۔',
+        written: 'رکو۔ آواز صاف نہیں آئی۔ دوبارہ پڑھو۔',
         wordIndex: 0,
         heard: this.heard()
       });
@@ -228,10 +322,9 @@ export class TeacherSession {
     this.currentWord.set(Math.max(0, check.index));
     this.onProgress?.();
     if (check.wrong) {
-      const line = localTip(this.ayah, check.index) ?? check.detail;
       this.halt({
-        spoken: line,
-        written: line,
+        spoken: wrongWordLine(this.ayah, check.index),
+        written: wrongWordLine(this.ayah, check.index),
         wordIndex: check.index,
         heard: transcript
       });
@@ -239,11 +332,11 @@ export class TeacherSession {
     }
     if (!partial && check.matchedThrough >= expected.length - 1 && expected.length > 0) {
       const seconds = (performance.now() - this.startedAt) / 1000;
-      const rushed = this.ayah.rules.length > 0 && expected.length >= 3 && seconds < expected.length * 0.45;
+      const rushed = expected.length >= 3 && seconds < expected.length * 0.45;
       if (rushed) {
         this.halt({
-          spoken: 'Stop. Too fast. Hold ghunnah and madd.',
-          written: 'Too fast. Hold ghunnah and madd.',
+          spoken: 'رکو۔ بہت تیز پڑھ رہے ہو۔ ٹھہر کر صاف صاف پڑھو۔',
+          written: 'رکو۔ بہت تیز پڑھ رہے ہو۔ ٹھہر کر صاف صاف پڑھو۔',
           wordIndex: 0,
           heard: transcript
         });
@@ -251,8 +344,8 @@ export class TeacherSession {
       }
       this.wantListen = false;
       this.stopMic();
-      this.message.set('Good. Continue.');
-      this.speak('Good. Continue.');
+      this.message.set('شاباش۔ اگلی آیت پڑھو۔');
+      this.speak('شاباش۔ اگلی آیت پڑھو۔');
       this.onPass?.();
     }
   }
@@ -278,12 +371,27 @@ export class TeacherSession {
   }
 }
 
-function localTip(ayah: AyahView, index: number): string | null {
-  const word = ayah.words[index];
-  const rule = word?.letters?.find((letter) => letter.rule && letter.rule !== 'none')?.rule
-    ?? ayah.rules.find((item) => RULE_TIPS[item]);
-  const tip = rule ? RULE_TIPS[rule] : undefined;
-  return tip ? `Stop. ${tip}` : null;
+function toMaulanaUrdu(text: string): string {
+  return text
+    .replace('Ruko. Yeh lafz ghalat pada. Sahi yeh hai:', 'رکو۔ یہ لفظ غلط پڑھا۔ صحیح یہ ہے:')
+    .replace('Ruko. Yeh lafz ghalat pada. Sahi dubara padho.', 'رکو۔ یہ لفظ غلط پڑھا۔ صحیح دوبارہ پڑھو۔')
+    .replace('Ruko. Bahut tez padh rahe ho. Thair kar, saaf saaf padho.', 'رکو۔ بہت تیز پڑھ رہے ہو۔ ٹھہر کر صاف صاف پڑھو۔')
+    .replace('Ruko. Awaz saaf nahi aayi. Dubara padho.', 'رکو۔ آواز صاف نہیں آئی۔ دوبارہ پڑھو۔')
+    .replace('Ruko. Zyada lafz padh diye. Sahi ayat dubara padho.', 'رکو۔ زیادہ الفاظ پڑھ دیے۔ صحیح آیت دوبارہ پڑھو۔')
+    .replace('Ruko. Poori ayat poori karo.', 'رکو۔ پوری آیت پوری کرو۔')
+    .replace('Shabash. Agli ayat padho.', 'شاباش۔ اگلی آیت پڑھو۔')
+    .replace('Shabash. Yeh para poora ho gaya.', 'شاباش۔ یہ پارہ پورا ہو گیا۔')
+    .replace('Main sun raha hoon.', 'میں سن رہا ہوں۔')
+    .replace('Chalte raho.', 'چلتے رہو۔')
+    .replace('Ruko. Chrome kholo aur microphone allow karo.', 'رکو۔ کروم کھولو اور مائیکروفون کی اجازت دو۔');
+}
+
+function wrongWordLine(ayah: AyahView, index: number): string {
+  const arabic = ayah.words[index]?.text?.trim();
+  if (!arabic) {
+    return 'رکو۔ یہ لفظ غلط پڑھا۔ صحیح دوبارہ پڑھو۔';
+  }
+  return `رکو۔ یہ لفظ غلط پڑھا۔ صحیح یہ ہے: ${arabic}`;
 }
 
 function plain(text: string): string {
@@ -326,7 +434,7 @@ function comparePrefix(
         wrong: true,
         index: expected.length - 1,
         matchedThrough: expected.length - 1,
-        detail: 'Stop. Extra words.'
+        detail: 'Ruko. Zyada lafz padh diye.'
       };
     }
     const partial = lastIsPartial && i === last;
@@ -338,7 +446,7 @@ function comparePrefix(
         wrong: true,
         index: i,
         matchedThrough: i - 1,
-        detail: `Stop. Word ${i + 1} is wrong.`
+        detail: `Ruko. Yeh lafz ghalat pada.`
       };
     }
   }

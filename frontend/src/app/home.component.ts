@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReadingStore } from './reading.store';
-import { PrayerService } from './prayer.service';
 import { InstallService } from './install.service';
 
 @Component({
@@ -29,9 +28,6 @@ import { InstallService } from './install.service';
         <img class="app-mark" src="/noor-logo.png" alt="القرآن الكريم" />
         <h1 class="brand-name">Noor</h1>
         <p class="kicker">Al-Quran</p>
-        @if (prayer.nextName(); as next) {
-          <p class="next-prayer">Next {{ next }} · {{ nextClock() }}</p>
-        }
         @if (install.installed()) {
           <p class="install-hint">{{ install.hint() }}</p>
         }
@@ -59,42 +55,7 @@ import { InstallService } from './install.service';
             <small>All 30 parahs</small>
           </span>
         </a>
-        <a class="item" routerLink="/qibla">
-          <span class="step">Q</span>
-          <span>
-            <b>Qibla</b>
-            <small>Face the Kaaba</small>
-          </span>
-        </a>
-        <a class="item lessons" routerLink="/lessons">
-          <span class="step">ت</span>
-          <span>
-            <b>Tajweed</b>
-            <small>Seven colors. One action each.</small>
-          </span>
-        </a>
       </nav>
-
-      <section class="prayer-card card">
-        <div class="prayer-head">
-          <span>Prayer times</span>
-          <button type="button" [class.on]="prayer.azaanOn()" (click)="prayer.toggleAzaan()">
-            {{ prayer.azaanOn() ? (prayer.azaanLive() ? 'Azaan playing' : 'Azaan on') : 'Azaan off' }}
-          </button>
-        </div>
-        @if (prayer.azaanLive()) {
-          <button type="button" class="stop-azaan" (click)="prayer.stopAdhan()">Stop azaan</button>
-        }
-        <ul>
-          @for (row of prayer.times(); track row.name) {
-            <li [class.next]="prayer.nextName() === row.name">
-              <span class="p-name">{{ row.name }}</span>
-              <span class="p-ar">{{ row.arabic }}</span>
-              <span class="p-time">{{ row.clock }}</span>
-            </li>
-          }
-        </ul>
-      </section>
       </div>
     </div>
   `,
@@ -179,39 +140,9 @@ import { InstallService } from './install.service';
     }
     .item b { display: block; font-family: var(--display); font-size: 24px; font-weight: 600; }
     .item small { color: var(--muted); font-size: 13px; }
-    .prayer-card { padding: 16px 18px; }
-    .prayer-head {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      margin-bottom: 8px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold);
-    }
-    .prayer-head button {
-      border: 1px solid var(--line); background: rgba(18, 34, 28, 0.85); color: var(--muted);
-      padding: 4px 10px; border-radius: 999px; cursor: pointer; font: 500 11px var(--ui);
-    }
-    .prayer-head button.on {
-      border-color: var(--gold); color: #0f1a17;
-      background: linear-gradient(180deg, var(--gold-2), var(--gold));
-    }
-    .prayer-card ul { list-style: none; margin: 0; padding: 0; }
-    .prayer-card li {
-      display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: baseline;
-      padding: 6px 8px; font-size: 15px; border-radius: 10px; color: var(--muted);
-    }
-    .prayer-card li.next { background: rgba(201, 162, 75, 0.16); color: var(--ink); }
-    .prayer-card .p-ar { font-family: var(--arabic); font-size: 16px; color: var(--gold-soft); }
-    .prayer-card .p-time { font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: end; }
-    .stop-azaan {
-      width: 100%; margin: 0 0 8px; border: 1px solid #8a1f1f; background: #6b1d1d; color: #fff;
-      padding: 8px 12px; cursor: pointer; font: 500 13px var(--ui); border-radius: 999px;
-    }
   `]
 })
 export class HomeComponent {
   readonly store = inject(ReadingStore);
-  readonly prayer = inject(PrayerService);
   readonly install = inject(InstallService);
-
-  nextClock(): string {
-    return this.prayer.times().find((row) => row.name === this.prayer.nextName())?.clock ?? '';
-  }
 }

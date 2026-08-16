@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { QuranApi } from './quran.api';
 import { ReadingStore } from './reading.store';
 import { TeacherHalt, TeacherSession } from './teacher.session';
-import { AyahView, LetterToken, ReaderSurah, TAJWEED_LEGEND, tajweedWordClass } from './models';
+import { AyahView, ReaderSurah } from './models';
 
 @Component({
   selector: 'app-practice',
@@ -14,7 +14,7 @@ import { AyahView, LetterToken, ReaderSurah, TAJWEED_LEGEND, tajweedWordClass } 
       <header class="head">
         <p class="kicker">Teacher</p>
         <h1>Recite</h1>
-        <p class="lede">I stop you on a mistake, then play the correct ayah. Follow the colors — one action each.</p>
+        <p class="lede">Maulana sunte hain. Ghalat lafz par rok kar sahi lafz bolte hain.</p>
       </header>
 
       <div class="pick">
@@ -40,31 +40,19 @@ import { AyahView, LetterToken, ReaderSurah, TAJWEED_LEGEND, tajweedWordClass } 
             @for (word of current.words; track word.index) {
               <span
                 class="word"
-                [class]="tajweedClass(word.letters)"
                 [class.bad]="haltWord() === word.index"
                 [class.ok]="teacher.matchedThrough() >= word.index && haltWord() !== word.index"
                 [class.now]="teacher.currentWord() === word.index && (teacher.listening() || teacher.halted()) && haltWord() !== word.index"
               >{{ word.text }}</span>
             }
           </p>
-          <details class="legend-box">
-            <summary>Tajweed colors</summary>
-            <ul class="tajweed-legend">
-              @for (item of legend; track item.id) {
-                <li>
-                  <span class="swatch" [class]="item.id"></span>
-                  <span class="legend-copy">{{ item.label }} <small>{{ item.name }}</small></span>
-                </li>
-              }
-            </ul>
-          </details>
           <p class="meaning">{{ current.translation }}</p>
         </section>
       }
 
       <aside class="teacher" [class.stop]="teacher.halted()" [class.live]="teacher.listening()">
         <p class="score">{{ statusLabel() }}</p>
-        <p class="msg">{{ note() || teacher.message() || 'Press Recite, then read this ayah.' }}</p>
+        <p class="msg">{{ note() || teacher.message() || 'Recite dabao, phir yeh ayat padho.' }}</p>
         @if (teacher.heard()) {
           <p class="heard" dir="rtl">{{ teacher.heard() }}</p>
         }
@@ -110,10 +98,7 @@ import { AyahView, LetterToken, ReaderSurah, TAJWEED_LEGEND, tajweedWordClass } 
       padding: 20px;
       box-shadow: var(--shadow);
     }
-    .arabic { font-family: var(--arabic); font-size: 34px; line-height: 2.1; margin: 0; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 0.28em; }
-    .legend-box { margin: 12px 0 0; color: #5c4e3a; }
-    .legend-box summary { cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: .04em; }
-    .tajweed-legend { margin: 10px 0 0; }
+    .arabic { font-family: var(--arabic); font-size: 42px; line-height: 2.15; margin: 0; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 0.32em; text-rendering: optimizeLegibility; }
     .word { display: inline-flex; padding: 0 4px; border-radius: 4px; transition: background-color 0.16s ease; }
     .word.bad { background: #f0c9c2; }
     .word.ok { background: #cfe8b8; }
@@ -175,7 +160,7 @@ import { AyahView, LetterToken, ReaderSurah, TAJWEED_LEGEND, tajweedWordClass } 
       h1 { font-size: 24px; }
       .lede { display: none; }
       .pick { margin: 8px 0; gap: 8px; }
-      .arabic { font-size: 28px; line-height: 1.9; }
+      .arabic { font-size: 34px; line-height: 2; }
       .ayah-card { padding: 14px; }
       .teacher { padding: 12px; }
       .score { font-size: 22px; }
@@ -195,12 +180,7 @@ export class PracticeComponent implements OnDestroy {
   readonly ayah = signal<AyahView | null>(null);
   readonly haltWord = signal(-1);
   readonly note = signal('');
-  readonly legend = TAJWEED_LEGEND;
   private audio?: HTMLAudioElement;
-
-  tajweedClass(letters: LetterToken[]): string {
-    return 'word ' + tajweedWordClass(letters);
-  }
 
   constructor() {
     this.api.surahs().subscribe((surahs) => {
@@ -216,12 +196,12 @@ export class PracticeComponent implements OnDestroy {
 
   statusLabel(): string {
     if (this.teacher.halted()) {
-      return 'STOP';
+      return 'Ruko';
     }
     if (this.teacher.listening()) {
-      return 'Listening';
+      return 'Sun raha hoon';
     }
-    return 'Ready';
+    return 'Tayyar';
   }
 
   ayahNumbers(): number[] {
@@ -274,10 +254,9 @@ export class PracticeComponent implements OnDestroy {
       onHalt: (halt: TeacherHalt) => {
         this.haltWord.set(halt.wordIndex);
         this.note.set(halt.spoken);
-        window.setTimeout(() => this.play(ayah), 2600);
       },
       onPass: () => {
-        this.note.set('Good. Go to the next ayah.');
+        this.note.set('شاباش۔ اگلی آیت پڑھو۔');
         const next = this.ayahNo() + 1;
         if (next <= this.ayahNumbers().length) {
           this.ayahNo.set(next);

@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
-import { PrayerService } from './prayer.service';
 import { InstallService } from './install.service';
 
 @Component({
@@ -23,7 +22,6 @@ import { InstallService } from './install.service';
           <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Home</a>
           <a routerLink="/read" routerLinkActive="on">Mushaf</a>
           <a routerLink="/practice" routerLinkActive="on">Recite</a>
-          <a routerLink="/qibla" routerLinkActive="on">Qibla</a>
           <a routerLink="/search" routerLinkActive="on">Search</a>
         </nav>
       </header>
@@ -42,10 +40,6 @@ import { InstallService } from './install.service';
         <a routerLink="/practice" routerLinkActive="on" class="recite-tab">
           <span class="tab-ico">●</span>
           <span>Recite</span>
-        </a>
-        <a routerLink="/qibla" routerLinkActive="on">
-          <span class="tab-ico">◉</span>
-          <span>Qibla</span>
         </a>
         <a routerLink="/search" routerLinkActive="on">
           <span class="tab-ico">⌕</span>
@@ -67,7 +61,6 @@ export class AppComponent {
   );
 
   constructor() {
-    inject(PrayerService).start();
     inject(InstallService).start();
   }
 

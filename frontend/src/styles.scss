@@ -4,6 +4,7 @@
   font-weight: normal;
   font-style: normal;
   font-display: swap;
+  font-synthesis: none;
 }
 
 :root {
@@ -227,40 +228,40 @@ a { color: inherit; }
   font: inherit;
   line-height: inherit;
 }
-.t.ghunnah { color: #e67e22; }
+.t.ghunnah { color: #c45c12; }
 .t.ikhfa,
-.t.ikhfa-shafawi { color: #1e8449; }
+.t.ikhfa-shafawi { color: #146c3a; }
 .t.idgham,
 .t.idgham-no-ghunnah,
-.t.idgham-shafawi { color: #148f77; }
-.t.iqlab { color: #2980b9; }
+.t.idgham-shafawi { color: #0d7377; }
+.t.iqlab { color: #1a5f9e; }
 .t.izhar,
-.t.izhar-shafawi { color: #b7950b; }
-.t.qalqalah { color: #8e44ad; }
+.t.izhar-shafawi { color: #8a6a08; }
+.t.qalqalah { color: #6d2b91; }
 .t.madd,
 .t.madd-tabii,
 .t.madd-munfasil,
 .t.madd-muttasil,
-.t.madd-lin { color: #c0392b; }
-.t.madd-lazim { color: #7b241c; }
+.t.madd-lin { color: #a31f1f; }
+.t.madd-lazim { color: #6b1818; }
 .t.none { color: inherit; }
 
-.swatch.ghunnah { background: #e67e22; }
+.swatch.ghunnah { background: #c45c12; }
 .swatch.ikhfa,
-.swatch.ikhfa-shafawi { background: #1e8449; }
+.swatch.ikhfa-shafawi { background: #146c3a; }
 .swatch.idgham,
 .swatch.idgham-no-ghunnah,
-.swatch.idgham-shafawi { background: #148f77; }
-.swatch.iqlab { background: #2980b9; }
+.swatch.idgham-shafawi { background: #0d7377; }
+.swatch.iqlab { background: #1a5f9e; }
 .swatch.izhar,
-.swatch.izhar-shafawi { background: #b7950b; }
-.swatch.qalqalah { background: #8e44ad; }
+.swatch.izhar-shafawi { background: #8a6a08; }
+.swatch.qalqalah { background: #6d2b91; }
 .swatch.madd,
 .swatch.madd-tabii,
 .swatch.madd-munfasil,
 .swatch.madd-muttasil,
-.swatch.madd-lin { background: #c0392b; }
-.swatch.madd-lazim { background: #7b241c; }
+.swatch.madd-lin { background: #a31f1f; }
+.swatch.madd-lazim { background: #6b1818; }
 
 .tajweed-legend {
   display: flex;
@@ -314,7 +315,7 @@ a { color: inherit; }
   .desktop-nav { display: none; }
   .tabbar {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     flex: 0 0 auto;
     height: var(--tab-h);
     padding-bottom: env(safe-area-inset-bottom);

@@ -86,10 +86,10 @@ import { namedParas } from './para-names';
       color: var(--gold); font-size: 12px; font-weight: 600;
     }
     .names { min-width: 0; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-    b { font-size: 13px; font-weight: 600; }
+    b { font-size: 15px; font-weight: 600; }
     em {
-      font-family: var(--arabic); font-style: normal; font-size: 16px; color: var(--gold);
-      direction: rtl;
+      font-family: var(--arabic); font-style: normal; font-size: 22px; color: var(--gold);
+      direction: rtl; line-height: 1.3;
     }
     @media (max-width: 720px) {
       .para-index { padding: 10px 12px 20px; min-height: 0; }

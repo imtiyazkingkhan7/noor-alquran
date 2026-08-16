@@ -71,6 +71,7 @@
                     [class.short]="line.short"
                     [class.title]="lineKind(line) === 'title'"
                     [class.basmala-line]="lineKind(line) === 'basmala'"
+                    [class.para-open]="isParaOpenLine($index)"
                     [style.column-gap.px]="lineGap(line)"
                   >
                     @for (token of line.tokens; track $index) {
@@ -78,7 +79,6 @@
                         <span
                           class="word"
                           [id]="'w-' + ayahSurah(token.ayah) + '-' + token.ayah.n + '-' + token.index"
-                          [class]="tajweedClass(token.letters)"
                           [class.done]="wordTone(token.ayah, token.index) === 'done'"
                           [class.now]="wordTone(token.ayah, token.index) === 'current'"
                           [class.bad]="wordTone(token.ayah, token.index) === 'wrong'"
@@ -90,7 +90,6 @@
                             <span
                               class="word"
                               [id]="'w-' + ayahSurah(token.ayah) + '-' + token.ayah.n + '-' + token.index"
-                              [class]="tajweedClass(token.letters)"
                               [class.done]="wordTone(token.ayah, token.index) === 'done'"
                               [class.now]="wordTone(token.ayah, token.index) === 'current'"
                               [class.bad]="wordTone(token.ayah, token.index) === 'wrong'"
@@ -128,17 +127,6 @@
       </div>
     }
     <div class="phone-dock">
-      <details class="phone-legend">
-        <summary>Tajweed colors</summary>
-        <ul class="tajweed-legend">
-          @for (item of legend; track item.id) {
-            <li>
-              <span class="swatch" [class]="item.id"></span>
-              <span class="legend-copy">{{ item.label }} <small>{{ item.name }}</small></span>
-            </li>
-          }
-        </ul>
-      </details>
       @if (teacher.listening() || teacher.halted() || teacherNote()) {
         <aside class="phone-coach" [class.stop]="teacher.halted()">
           <strong>{{ teacher.halted() ? 'STOP' : 'Teacher' }}</strong>
@@ -186,38 +174,6 @@
         {{ teacher.listening() ? 'Teacher is listening…' : 'Recite to teacher' }}
       </button>
     </div>
-    <ul class="tajweed-legend rail-legend">
-      @for (item of legend; track item.id) {
-        <li>
-          <span class="swatch" [class]="item.id"></span>
-          <span class="legend-copy">{{ item.label }} <small>{{ item.name }}</small></span>
-        </li>
-      }
-    </ul>
-
-    <section class="prayer-card">
-      <div class="prayer-head">
-        <span>Prayer times</span>
-        <button type="button" [class.on]="prayer.azaanOn()" (click)="prayer.toggleAzaan()">
-          {{ prayer.azaanOn() ? (prayer.azaanLive() ? 'Azaan playing' : 'Azaan on') : 'Azaan off' }}
-        </button>
-      </div>
-      @if (prayer.status() && !prayer.times().length) {
-        <p class="prayer-status">{{ prayer.status() }}</p>
-      }
-      @if (prayer.azaanLive()) {
-        <button type="button" class="stop-azaan" (click)="prayer.stopAdhan()">Stop azaan</button>
-      }
-      <ul>
-        @for (row of prayer.times(); track row.name) {
-          <li [class.next]="prayer.nextName() === row.name">
-            <span class="p-name">{{ row.name }}</span>
-            <span class="p-ar">{{ row.arabic }}</span>
-            <span class="p-time">{{ row.clock }}</span>
-          </li>
-        }
-      </ul>
-    </section>
 
     @if (teacher.listening() || teacher.halted() || teacherNote()) {
       <aside class="coach" [class.stop]="teacher.halted()">

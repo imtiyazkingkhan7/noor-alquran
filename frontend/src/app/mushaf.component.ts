@@ -4,15 +4,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { QuranApi } from './quran.api';
 import { ReadingStore } from './reading.store';
 import { TeacherHalt, TeacherSession } from './teacher.session';
-import { PrayerService } from './prayer.service';
-import { AyahView, JuzView, LetterToken, ReaderAyah, ReaderPara, ReciterView, TAJWEED_LEGEND, tajweedWordClass } from './models';
+import { AyahView, JuzView, LetterToken, ReaderAyah, ReaderPara, ReciterView } from './models';
 import { namedParas, paraName } from './para-names';
 
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-const FONT = '36px "Al Majeed Quranic"';
-const WORD_GAP = 4;
-const MARK_SIZE = 28;
-const LINE_HEIGHT = 54;
+const FONT = '44px "Al Majeed Quranic"';
+const WORD_GAP = 6;
+const MARK_SIZE = 30;
+const LINE_HEIGHT = 62;
 
 type Token =
   | { kind: 'word'; ayah: ReaderAyah; index: number; text: string; letters: LetterToken[] }
@@ -33,7 +32,6 @@ export class MushafComponent implements OnDestroy {
   private readonly router = inject(Router);
   readonly store = inject(ReadingStore);
   readonly teacher = inject(TeacherSession);
-  readonly prayer = inject(PrayerService);
 
   readonly paras = signal<JuzView[]>([]);
   readonly reciters = signal<ReciterView[]>([]);
@@ -52,7 +50,6 @@ export class MushafComponent implements OnDestroy {
   readonly haltWord = signal(-1);
   readonly teacherNote = signal('');
   readonly paraDrawer = signal(false);
-  readonly legend = TAJWEED_LEGEND;
   private readonly well = viewChild<ElementRef<HTMLElement>>('well');
   private audio?: HTMLAudioElement;
   private observer?: ResizeObserver;
@@ -196,8 +193,13 @@ export class MushafComponent implements OnDestroy {
     return line.tokens.some((token) => token.kind === 'close' && token.ruku);
   }
 
-  tajweedClass(letters: LetterToken[]): string {
-    return 'word ' + tajweedWordClass(letters);
+  isParaOpenLine(index: number): boolean {
+    if (this.leaf() !== 0) {
+      return false;
+    }
+    const lines = this.currentLines();
+    const first = lines.findIndex((line) => this.lineKind(line) === 'text');
+    return first >= 0 && index === first;
   }
 
   showHeader(): boolean {
@@ -431,7 +433,6 @@ export class MushafComponent implements OnDestroy {
         this.teacherNote.set(halt.spoken);
         this.select(ayah);
         this.scrollAyah(this.ayahSurah(ayah), ayah.n, halt.wordIndex);
-        window.setTimeout(() => this.play(ayah, false), 2600);
       },
       onPass: () => {
         const next = nextAyah(this.detail()?.ayahs ?? [], ayah);
@@ -439,10 +440,10 @@ export class MushafComponent implements OnDestroy {
           this.select(next);
           this.showLeafFor(this.ayahSurah(next), next.n);
           this.scrollAyah(this.ayahSurah(next), next.n);
-          this.teacherNote.set('Good. Recite the next ayah.');
+          this.teacherNote.set('شاباش۔ اگلی آیت پڑھو۔');
           window.setTimeout(() => this.startTeacher(), 1600);
         } else {
-          this.teacherNote.set('Good. This para is complete.');
+          this.teacherNote.set('شاباش۔ یہ پارہ پورا ہو گیا۔');
         }
       },
       onProgress: () => {
@@ -464,7 +465,7 @@ export class MushafComponent implements OnDestroy {
     }
     const lineHeight = LINE_HEIGHT;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:pack3`;
+    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:pack4`;
     if (key === this.lastPack && this.pages().length) {
       return;
     }

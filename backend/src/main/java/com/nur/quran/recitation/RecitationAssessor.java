@@ -2,7 +2,6 @@ package com.nur.quran.recitation;
 
 import com.nur.quran.api.dto.QuranDtos.AssessResponse;
 import com.nur.quran.api.dto.QuranDtos.AyahView;
-import com.nur.quran.api.dto.QuranDtos.LetterToken;
 import com.nur.quran.api.dto.QuranDtos.ProgressResponse;
 import com.nur.quran.api.dto.QuranDtos.ProgressWord;
 import com.nur.quran.api.dto.QuranDtos.WordFeedback;
@@ -11,59 +10,16 @@ import com.nur.quran.tajweed.TajweedEngine;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 
 @Service
 public class RecitationAssessor {
 
-    private static final Map<String, String> RULE_TIPS = Map.ofEntries(
-            Map.entry("ghunnah", "Hold noon — ghunnah"),
-            Map.entry("ikhfa", "Hide noon — ikhfa"),
-            Map.entry("ikhfa-shafawi", "Hide meem — ikhfa"),
-            Map.entry("idgham", "Merge noon — idgham"),
-            Map.entry("idgham-no-ghunnah", "Merge fully — idgham"),
-            Map.entry("idgham-shafawi", "Merge meem — idgham"),
-            Map.entry("iqlab", "Noon becomes meem — iqlab"),
-            Map.entry("izhar", "Say noon clearly — izhar"),
-            Map.entry("izhar-shafawi", "Say meem clearly"),
-            Map.entry("qalqalah", "Bounce the letter — qalqalah"),
-            Map.entry("madd", "Stretch the vowel — madd"),
-            Map.entry("madd-tabii", "Stretch the vowel — madd"),
-            Map.entry("madd-munfasil", "Stretch the vowel — madd"),
-            Map.entry("madd-muttasil", "Stretch the vowel — madd"),
-            Map.entry("madd-lazim", "Hold the long madd"),
-            Map.entry("madd-lin", "Stretch the vowel — madd")
-    );
-
-    private static final List<String> TIP_ORDER = List.of(
-            "madd-lazim",
-            "ghunnah",
-            "iqlab",
-            "ikhfa",
-            "ikhfa-shafawi",
-            "idgham",
-            "idgham-shafawi",
-            "idgham-no-ghunnah",
-            "qalqalah",
-            "madd-muttasil",
-            "madd-munfasil",
-            "madd-lin",
-            "madd-tabii",
-            "madd",
-            "izhar",
-            "izhar-shafawi"
-    );
-
     public AssessResponse assess(AyahView ayah, String transcript, Double durationSeconds) {
-        List<String> tips = shortTips(ayah.rules());
-
         if (transcript == null || transcript.isBlank()) {
-            String message = "Stop. I did not hear the ayah.";
-            return new AssessResponse(0, List.of(), tips, message, false, true, message, 0);
+            String message = MaulanaLines.NO_HEAR;
+            return new AssessResponse(0, List.of(), List.of(), message, false, true, message, 0);
         }
 
         List<String> expected = ayah.words().stream().map(WordToken::plain).filter(word -> !word.isBlank()).toList();
@@ -75,8 +31,7 @@ public class RecitationAssessor {
         long missing = alignment.stream().filter(word -> "missing".equals(word.status())).count();
         long mismatch = alignment.stream().filter(word -> "mismatch".equals(word.status())).count();
         boolean rushed = durationSeconds != null && durationSeconds > 0 && expected.size() >= 3
-                && durationSeconds < expected.size() * 0.45
-                && !ayah.rules().isEmpty();
+                && durationSeconds < expected.size() * 0.45;
         boolean shouldStop = accuracy < 90 || missing > 0 || mismatch > 0 || rushed;
 
         int stopAt = alignment.stream()
@@ -87,19 +42,20 @@ public class RecitationAssessor {
 
         String line;
         if (mismatch > 0 || missing > 0) {
-            line = tipLine(wordRules(ayah, stopAt), "Stop. That word is wrong.");
+            line = MaulanaLines.wrongWord(ayah.words() != null && stopAt < ayah.words().size()
+                    ? ayah.words().get(stopAt).text() : "");
         } else if (rushed) {
-            line = tipLine(ayah.rules(), "Stop. Too fast. Hold ghunnah and madd.");
+            line = MaulanaLines.TOO_FAST;
         } else if (accuracy < 90) {
-            line = "Stop. Finish the ayah.";
+            line = MaulanaLines.FINISH;
         } else {
-            line = "Good. Continue.";
+            line = MaulanaLines.GOOD;
         }
 
         return new AssessResponse(
                 accuracy,
                 alignment,
-                tips,
+                List.of(),
                 line,
                 true,
                 shouldStop,
@@ -115,24 +71,24 @@ public class RecitationAssessor {
             words.add(new ProgressWord(i, "pending", expected.get(i), ""));
         }
         if (expected.isEmpty()) {
-            return new ProgressResponse(-1, 0, words, false, true, "", "This ayah has no words.");
+            return new ProgressResponse(-1, 0, words, false, true, "", MaulanaLines.EMPTY);
         }
         if (transcript == null || transcript.isBlank()) {
             setStatus(words, 0, "current", "");
-            return new ProgressResponse(-1, 0, words, false, false, "", "I am listening.");
+            return new ProgressResponse(-1, 0, words, false, false, "", MaulanaLines.LISTENING);
         }
 
         List<String> heard = tokenize(TajweedEngine.plain(transcript));
         if (heard.isEmpty()) {
             setStatus(words, 0, "current", "");
-            return new ProgressResponse(-1, 0, words, false, false, "", "I am listening.");
+            return new ProgressResponse(-1, 0, words, false, false, "", MaulanaLines.LISTENING);
         }
 
         int last = heard.size() - 1;
         for (int i = 0; i < heard.size(); i++) {
             if (i >= expected.size()) {
                 paint(words, expected.size() - 1, expected.size() - 1, "wrong", heard.get(i));
-                String extra = "Stop. Extra words.";
+                String extra = MaulanaLines.EXTRA;
                 return new ProgressResponse(
                         expected.size() - 1,
                         expected.size() - 1,
@@ -148,11 +104,11 @@ public class RecitationAssessor {
                     && heard.get(i).length() < expected.get(i).length()
                     && expected.get(i).startsWith(heard.get(i))) {
                 paint(words, i - 1, i, "current", heard.get(i));
-                return new ProgressResponse(i - 1, i, words, false, false, "", "Keep going.");
+                return new ProgressResponse(i - 1, i, words, false, false, "", MaulanaLines.KEEP_GOING);
             }
             if (!similar(expected.get(i), heard.get(i))) {
                 paint(words, i - 1, i, "wrong", heard.get(i));
-                String line = tipLine(wordRules(ayah, i), "Stop. That word is wrong.");
+                String line = wrongWordLine(ayah, i);
                 return new ProgressResponse(
                         i - 1,
                         i,
@@ -169,11 +125,10 @@ public class RecitationAssessor {
         int matchedThrough = last;
         boolean complete = !partial && matchedThrough >= expected.size() - 1;
         boolean rushed = complete && durationSeconds != null && durationSeconds > 0 && expected.size() >= 3
-                && durationSeconds < expected.size() * 0.45
-                && !ayah.rules().isEmpty();
+                && durationSeconds < expected.size() * 0.45;
         if (rushed) {
             paint(words, matchedThrough, 0, "wrong", heard.get(last));
-            String line = tipLine(ayah.rules(), "Stop. Too fast. Hold ghunnah and madd.");
+            String line = MaulanaLines.TOO_FAST;
             return new ProgressResponse(
                     matchedThrough,
                     0,
@@ -193,65 +148,20 @@ public class RecitationAssessor {
                     words,
                     false,
                     true,
-                    "Good. Continue.",
-                    "Good. Continue."
+                    MaulanaLines.GOOD,
+                    MaulanaLines.GOOD
             );
         }
         paint(words, matchedThrough, current, "current", heard.get(last));
-        return new ProgressResponse(matchedThrough, current, words, false, false, "", "Keep going.");
+        return new ProgressResponse(matchedThrough, current, words, false, false, "", MaulanaLines.KEEP_GOING);
     }
 
-    private String tipLine(List<String> rules, String fallback) {
-        String tip = firstTip(rules);
-        if (tip == null) {
-            return fallback;
+    private String wrongWordLine(AyahView ayah, int index) {
+        String arabic = "";
+        if (ayah.words() != null && index >= 0 && index < ayah.words().size()) {
+            arabic = ayah.words().get(index).text();
         }
-        if (fallback.startsWith("Stop. Too fast")) {
-            return "Stop. Too fast. " + tip;
-        }
-        return "Stop. " + tip;
-    }
-
-    private List<String> wordRules(AyahView ayah, int index) {
-        if (ayah.words() == null || index < 0 || index >= ayah.words().size()) {
-            return ayah.rules();
-        }
-        WordToken word = ayah.words().get(index);
-        if (word.letters() == null) {
-            return ayah.rules();
-        }
-        List<String> rules = word.letters().stream()
-                .map(LetterToken::rule)
-                .filter(rule -> rule != null && !rule.isBlank() && !"none".equals(rule))
-                .toList();
-        return rules.isEmpty() ? ayah.rules() : rules;
-    }
-
-    private List<String> shortTips(List<String> rules) {
-        if (rules == null || rules.isEmpty()) {
-            return List.of();
-        }
-        Set<String> seen = new LinkedHashSet<>();
-        for (String rule : TIP_ORDER) {
-            if (rules.contains(rule)) {
-                String tip = RULE_TIPS.get(rule);
-                if (tip != null) {
-                    seen.add(tip);
-                }
-            }
-        }
-        for (String rule : rules) {
-            String tip = RULE_TIPS.get(rule);
-            if (tip != null) {
-                seen.add(tip);
-            }
-        }
-        return List.copyOf(seen);
-    }
-
-    private String firstTip(List<String> rules) {
-        List<String> tips = shortTips(rules);
-        return tips.isEmpty() ? null : tips.get(0);
+        return MaulanaLines.wrongWord(arabic);
     }
 
     private void paint(List<ProgressWord> words, int matchedThrough, int current, String currentStatus, String heard) {

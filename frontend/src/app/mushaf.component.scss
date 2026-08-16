@@ -98,12 +98,13 @@
 }
 
 .surah-names { display: flex; flex-direction: column; min-width: 0; }
-.surah-en { font-size: 14px; color: var(--ink); }
+.surah-en { font-size: 15px; color: var(--ink); }
 .surah-ar {
-  font-size: 13px;
-  color: var(--ink-dim);
+  font-size: 18px;
+  color: var(--ink);
   direction: rtl;
   font-family: var(--quran);
+  line-height: 1.35;
 }
 
 #main {
@@ -170,7 +171,7 @@
 }
 
 .ruku-slot {
-  height: 54px;
+  height: 62px;
   display: grid;
   place-items: center;
   font-family: var(--quran);
@@ -337,16 +338,16 @@
 }
 
 .sheet {
-  --ink: #1c140c;
+  --ink: #100c08;
   --frame-inner: #5a4630;
   position: relative;
   flex: 0 0 auto;
-  height: min(calc(100vh - 148px), 900px);
+  height: min(calc(100vh - 120px), 940px);
   width: auto;
   max-width: none;
   aspect-ratio: 434 / 612;
-  background: #fff url("/mushaf-page.png") center / 100% 100% no-repeat;
-  zoom: 0.92;
+  background: #f7f1de url("/mushaf-page.png") center / 100% 100% no-repeat;
+  image-rendering: high-quality;
   overflow: visible;
 }
 
@@ -360,7 +361,7 @@
   flex-direction: column;
   overflow: visible;
   color: var(--ink);
-  background: transparent;
+  background: #f7f1de;
 }
 
 .page-head {
@@ -408,13 +409,13 @@
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
-  height: 54px;
+  height: 62px;
   box-sizing: border-box;
   font-family: var(--quran);
-  font-size: 36px;
+  font-size: 44px;
   line-height: 1;
   margin: 0;
-  padding: 0 2px;
+  padding: 0 4px;
   white-space: nowrap;
   color: var(--ink);
   letter-spacing: 0;
@@ -424,6 +425,9 @@
   font-synthesis: none;
   font-feature-settings: "liga" 1, "calt" 1, "kern" 1, "rlig" 1;
   direction: rtl;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
 }
 
 .mushaf-line.title,
@@ -433,8 +437,30 @@
   font-weight: normal;
 }
 
+.mushaf-line.para-open {
+  background: #111;
+  color: #fff;
+  border-bottom-color: #111;
+  padding: 0 8px;
+}
+
+.mushaf-line.para-open .word,
+.mushaf-line.para-open .ruku-in,
+.mushaf-line.para-open .ayah-num,
+.mushaf-line.para-open .basmala,
+.mushaf-line.para-open .surah-title {
+  color: #fff;
+  -webkit-text-stroke: 0.2px #fff;
+}
+
+.mushaf-line.para-open .ayah-end {
+  border-color: #fff;
+  background: #111;
+  color: #fff;
+}
+
 .mushaf-line .surah-title {
-  font-size: 30px;
+  font-size: 36px;
   font-weight: normal;
 }
 
@@ -448,6 +474,9 @@
   cursor: pointer;
   border-radius: 2px;
   font-weight: normal;
+  font: inherit;
+  line-height: inherit;
+  -webkit-text-stroke: 0.2px currentColor;
 }
 
 .mushaf-line .word .t {
@@ -697,8 +726,12 @@
     width: min(100%, calc((100dvh - var(--top-h) - var(--tab-h) - var(--dock-h) - 56px) * 434 / 612));
     max-height: calc(100dvh - var(--top-h) - var(--tab-h) - var(--dock-h) - 56px);
     aspect-ratio: 434 / 612;
-    zoom: 1;
   }
+  .mushaf-line {
+    font-size: 38px;
+    height: 54px;
+  }
+  .ruku-slot { height: 54px; }
   .phone-legend {
     position: relative;
     color: var(--ink);
