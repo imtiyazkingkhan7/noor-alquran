@@ -43,7 +43,7 @@ import { namedParas } from './para-names';
   styles: [`
     .para-index {
       position: relative;
-      min-height: calc(100vh - 68px);
+      min-height: calc(100dvh - var(--top-h) - var(--tab-h));
       padding: 18px 22px 28px;
       display: flex;
       flex-direction: column;
@@ -92,7 +92,10 @@ import { namedParas } from './para-names';
       direction: rtl;
     }
     @media (max-width: 720px) {
-      .board { grid-template-columns: 1fr; }
+      .para-index { padding: 10px 12px 20px; min-height: 0; }
+      h1 { font-size: 28px; }
+      .board { grid-template-columns: 1fr; padding: 10px; }
+      a { padding: 10px; }
     }
   `]
 })

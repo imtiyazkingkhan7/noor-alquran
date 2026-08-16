@@ -1,15 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { PrayerService } from './prayer.service';
 
 @Component({
   selector: 'app-qibla',
-  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="qibla-app">
       <h1>Qibla</h1>
-      <p class="lede">The red needle and the Kaaba mark the exact direction of Masjid al-Haram from where you are.</p>
+      <p class="lede">Turn until the Kaaba sits at the top. The red needle points to Masjid al-Haram.</p>
 
       <section class="stage" [class.aligned]="prayer.facingQibla() && prayer.compassLive()">
         <div class="compass">
@@ -41,14 +39,22 @@ import { PrayerService } from './prayer.service';
           {{ prayer.compassLive() ? 'Compass on' : 'Turn on compass' }}
         </button>
         <button type="button" class="btn" (click)="prayer.refreshLocation()">Use my location</button>
-        <a class="btn" routerLink="/">Home</a>
       </div>
     </div>
   `,
   styles: [`
-    .qibla-app { padding: 24px 24px 48px; max-width: 520px; margin: 0 auto; text-align: center; }
-    h1 { font-family: var(--display); font-weight: 600; font-size: 40px; margin: 0 0 8px; }
-    .lede { color: var(--ink-dim); line-height: 1.5; margin: 0 auto 20px; max-width: 40ch; }
+    :host { display: block; height: 100%; }
+    .qibla-app { padding: 20px 20px 28px; max-width: 520px; margin: 0 auto; text-align: center; }
+    h1 { font-family: var(--display); font-weight: 600; font-size: 36px; margin: 0 0 8px; }
+    .lede { color: var(--ink-dim); line-height: 1.5; margin: 0 auto 16px; max-width: 40ch; }
+    @media (max-width: 900px) {
+      .qibla-app { padding: 8px 14px 16px; }
+      h1 { font-size: 24px; margin-bottom: 4px; }
+      .lede { font-size: 13px; margin-bottom: 10px; }
+      .stage { padding: 16px 12px 14px; }
+      .compass { width: min(260px, 70vw); height: min(260px, 70vw); }
+      .deg { font-size: 28px; margin: 12px 0 4px; }
+    }
     .stage {
       padding: 28px 16px 22px;
       border-radius: 28px;

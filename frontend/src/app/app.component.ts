@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter, map, startWith } from 'rxjs';
 import { PrayerService } from './prayer.service';
 import { InstallService } from './install.service';
 
@@ -8,7 +10,7 @@ import { InstallService } from './install.service';
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="shell">
+    <div class="shell" [class.immersive]="readerOpen()">
       <header class="top">
         <a routerLink="/" class="brand">
           <img class="mark" src="/noor-logo.png" alt="Noor" />
@@ -19,6 +21,9 @@ import { InstallService } from './install.service';
         </a>
         <nav class="nav desktop-nav">
           <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+          <a routerLink="/read" routerLinkActive="on">Mushaf</a>
+          <a routerLink="/practice" routerLinkActive="on">Recite</a>
+          <a routerLink="/qibla" routerLinkActive="on">Qibla</a>
           <a routerLink="/search" routerLinkActive="on">Search</a>
         </nav>
       </header>
@@ -34,7 +39,7 @@ import { InstallService } from './install.service';
           <span class="tab-ico">۝</span>
           <span>Mushaf</span>
         </a>
-        <a routerLink="/practice" routerLinkActive="on">
+        <a routerLink="/practice" routerLinkActive="on" class="recite-tab">
           <span class="tab-ico">●</span>
           <span>Recite</span>
         </a>
@@ -51,8 +56,22 @@ import { InstallService } from './install.service';
   `
 })
 export class AppComponent {
+  private readonly router = inject(Router);
+  readonly path = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+      startWith(this.router.url)
+    ),
+    { initialValue: this.router.url }
+  );
+
   constructor() {
     inject(PrayerService).start();
     inject(InstallService).start();
+  }
+
+  readerOpen(): boolean {
+    return this.path().split('?')[0] === '/read';
   }
 }

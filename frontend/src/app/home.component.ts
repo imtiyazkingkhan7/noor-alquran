@@ -29,6 +29,9 @@ import { InstallService } from './install.service';
         <img class="app-mark" src="/noor-logo.png" alt="القرآن الكريم" />
         <h1 class="brand-name">Noor</h1>
         <p class="kicker">Al-Quran</p>
+        @if (prayer.nextName(); as next) {
+          <p class="next-prayer">Next {{ next }} · {{ nextClock() }}</p>
+        }
         @if (install.installed()) {
           <p class="install-hint">{{ install.hint() }}</p>
         }
@@ -63,6 +66,13 @@ import { InstallService } from './install.service';
             <small>Face the Kaaba</small>
           </span>
         </a>
+        <a class="item lessons" routerLink="/lessons">
+          <span class="step">ت</span>
+          <span>
+            <b>Tajweed</b>
+            <small>Rules the teacher uses</small>
+          </span>
+        </a>
       </nav>
 
       <section class="prayer-card card">
@@ -90,15 +100,24 @@ import { InstallService } from './install.service';
   `,
   styles: [`
     .home { padding: 28px 24px 48px; max-width: 560px; margin: 0 auto; }
+    .next-prayer {
+      margin: 8px 0 0;
+      color: var(--gold);
+      font-size: 13px;
+      letter-spacing: 0.06em;
+    }
+    .item.lessons { padding: 12px 18px; }
+    .item.lessons b { font-size: 20px; }
     @media (max-width: 900px) {
-      .home { padding: 12px 14px 24px; }
+      .home { padding: 10px 14px 20px; }
       .install-card { display: none; }
-      .app-mark { width: min(112px, 28vw); margin-bottom: 0; }
-      .brand-name { font-size: 28px; }
-      .hero { margin-bottom: 12px; }
+      .app-mark { width: min(96px, 24vw); margin-bottom: 0; }
+      .brand-name { font-size: 26px; }
+      .hero { margin-bottom: 10px; }
       .item b { font-size: 18px; }
       .item { padding: 12px 14px; }
       .item.recite { border-color: var(--gold); background: linear-gradient(180deg, rgba(201, 162, 75, 0.22), rgba(14, 28, 23, 0.92)); }
+      .menu { gap: 8px; margin-bottom: 14px; }
     }
     .hero { text-align: center; margin-bottom: 22px; }
     .app-mark {
@@ -191,4 +210,8 @@ export class HomeComponent {
   readonly store = inject(ReadingStore);
   readonly prayer = inject(PrayerService);
   readonly install = inject(InstallService);
+
+  nextClock(): string {
+    return this.prayer.times().find((row) => row.name === this.prayer.nextName())?.clock ?? '';
+  }
 }
