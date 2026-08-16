@@ -513,7 +513,7 @@ export class MushafComponent implements OnDestroy {
     const font = `${size} "Al Majeed Quranic"`;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack16`;
+    const key = `${detail.num}:${width}:${height}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack22`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }
@@ -697,6 +697,18 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
   return lines;
 }
 
+function emptyLine(): Line {
+  return { tokens: [], short: true, extra: 0 };
+}
+
+function padPage(page: Line[], linesPerPage: number): Line[] {
+  const filled = page.slice(0, linesPerPage);
+  while (filled.length < linesPerPage) {
+    filled.push(emptyLine());
+  }
+  return filled;
+}
+
 function buildPages(ayahs: ReaderAyah[], maxWidth: number, linesPerPage: number, font = FONT): Line[][] {
   const packed = packLines(ayahs, Math.max(120, maxWidth), font);
   const pages: Line[][] = [];
@@ -704,15 +716,15 @@ function buildPages(ayahs: ReaderAyah[], maxWidth: number, linesPerPage: number,
   for (const line of packed) {
     const newSurah = line.tokens[0]?.kind === 'title' && page.length > 0;
     if (page.length >= linesPerPage || newSurah) {
-      pages.push(page);
+      pages.push(padPage(page, linesPerPage));
       page = [];
     }
     page.push(line);
   }
   if (page.length) {
-    pages.push(page);
+    pages.push(padPage(page, linesPerPage));
   }
-  return pages.length ? pages : [[]];
+  return pages.length ? pages : [padPage([], linesPerPage)];
 }
 
 function leafIndexFor(pages: Line[][], surah: number, ayah: number): number {
