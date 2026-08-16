@@ -72,7 +72,6 @@
                     [class.title]="lineKind(line) === 'title'"
                     [class.basmala-line]="lineKind(line) === 'basmala'"
                     [class.para-open]="isParaOpenLine($index)"
-                    [class.fit]="lineFits(line)"
                     [style.column-gap.px]="lineGap(line)"
                   >
                     @for (token of line.tokens; track $index) {

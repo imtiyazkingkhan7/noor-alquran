@@ -10,9 +10,8 @@ import { namedParas, paraName } from './para-names';
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const FONT = '44px "Al Majeed Quranic"';
 const WORD_GAP = 6;
-const MARK_SIZE = 32;
+const MARK_SIZE = 30;
 const LINE_HEIGHT = 62;
-const MAX_JUSTIFY = 36;
 
 type Token =
   | { kind: 'word'; ayah: ReaderAyah; index: number; text: string; letters: LetterToken[] }
@@ -55,9 +54,6 @@ export class MushafComponent implements OnDestroy {
   private audio?: HTMLAudioElement;
   private observer?: ResizeObserver;
   private lastPack = '';
-  private packShrink = 0;
-  private lastWell = 0;
-  private fitting = false;
   private pendingLastLeaf = false;
   private pageQueue: ReaderAyah[] = [];
   private queueIndex = 0;
@@ -187,12 +183,8 @@ export class MushafComponent implements OnDestroy {
     return 'text';
   }
 
-  lineGap(line: Line): number {
-    return this.lineFits(line) ? 0 : WORD_GAP;
-  }
-
-  lineFits(line: Line): boolean {
-    return !line.short && this.lineKind(line) === 'text' && line.extra <= MAX_JUSTIFY;
+  lineGap(_line: Line): number {
+    return WORD_GAP;
   }
 
   lineHasRuku(line: Line): boolean {
@@ -464,24 +456,22 @@ export class MushafComponent implements OnDestroy {
     if (!detail || !well) {
       return;
     }
-    const box = well.clientWidth;
-    const height = Math.floor(well.clientHeight);
-    if (box < 80 || height < 40) {
+    const box = getComputedStyle(well);
+    const padX = parseFloat(box.paddingLeft) + parseFloat(box.paddingRight);
+    const padY = parseFloat(box.paddingTop) + parseFloat(box.paddingBottom);
+    const width = Math.max(80, Math.floor(well.clientWidth - padX - 8));
+    const height = Math.max(40, Math.floor(well.clientHeight - padY));
+    if (width < 80 || height < 40) {
       return;
-    }
-    if (box !== this.lastWell) {
-      this.packShrink = 0;
-      this.lastWell = box;
     }
     const host = well.closest('app-mushaf') as HTMLElement | null;
     const vars = getComputedStyle(host ?? well);
     const size = vars.getPropertyValue('--mushaf-size').trim() || '44px';
     const lineHeight = parseFloat(vars.getPropertyValue('--mushaf-line-h')) || LINE_HEIGHT;
     const font = `${size} "Al Majeed Quranic"`;
-    const width = Math.max(80, Math.floor(box - 10 - this.packShrink));
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack8`;
+    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack9`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }
@@ -495,29 +485,6 @@ export class MushafComponent implements OnDestroy {
     } else {
       this.showLeafFor(surah, ayah);
     }
-    window.setTimeout(() => this.clipOverflow(), 0);
-  }
-
-  private clipOverflow(): void {
-    if (this.fitting) {
-      return;
-    }
-    const well = this.well()?.nativeElement;
-    if (!well) {
-      return;
-    }
-    const extra = [...well.querySelectorAll<HTMLElement>('.mushaf-line')]
-      .filter((el) => !el.classList.contains('title') && !el.classList.contains('basmala-line'))
-      .map((el) => el.scrollWidth - el.clientWidth)
-      .filter((over) => over > 2);
-    if (!extra.length || this.packShrink > 96) {
-      return;
-    }
-    this.fitting = true;
-    this.packShrink += Math.ceil(Math.max(...extra)) + 6;
-    this.lastPack = '';
-    this.packToWidth(true);
-    this.fitting = false;
   }
 
   private playAyahAudio(ayah: ReaderAyah, chain: boolean): void {
@@ -616,43 +583,20 @@ export class MushafComponent implements OnDestroy {
   }
 }
 
+let measureCtx: CanvasRenderingContext2D | null = null;
+
 function measure(text: string, font = FONT): number {
   if (typeof document === 'undefined') {
     return text.length * 11;
   }
-  const probe = glyphProbe(font);
-  probe.textContent = text;
-  return Math.ceil(probe.getBoundingClientRect().width);
-}
-
-let probeEl: HTMLSpanElement | null = null;
-let probeFont = '';
-
-function glyphProbe(font: string): HTMLSpanElement {
-  if (!probeEl) {
-    probeEl = document.createElement('span');
-    probeEl.setAttribute('aria-hidden', 'true');
-    probeEl.style.cssText = [
-      'position:absolute',
-      'left:-9999px',
-      'top:0',
-      'visibility:hidden',
-      'white-space:nowrap',
-      'letter-spacing:0',
-      'word-spacing:0',
-      'padding:0',
-      'margin:0',
-      'border:0',
-      'line-height:1',
-      'font-feature-settings:"liga" 1, "calt" 1, "kern" 1, "rlig" 1'
-    ].join(';');
-    document.body.appendChild(probeEl);
+  if (!measureCtx) {
+    measureCtx = document.createElement('canvas').getContext('2d');
   }
-  if (probeFont !== font) {
-    probeEl.style.font = font;
-    probeFont = font;
+  if (!measureCtx) {
+    return text.length * 11;
   }
-  return probeEl;
+  measureCtx.font = font;
+  return measureCtx.measureText(text).width;
 }
 
 function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {

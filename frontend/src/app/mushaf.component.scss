@@ -161,14 +161,14 @@
 
 .ruku-gutter {
   position: absolute;
-  left: -32px;
+  left: -34px;
   top: 9.4%;
   bottom: 9.4%;
   width: 28px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  z-index: 5;
+  z-index: 4;
   pointer-events: none;
 }
 
@@ -364,7 +364,6 @@
   overflow: hidden;
   color: var(--ink);
   background: #f7f1de;
-  clip-path: inset(0);
 }
 
 .page-head {
@@ -396,6 +395,8 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  padding: 10px 6px 8px;
+  box-sizing: border-box;
 }
 
 .empty {
@@ -440,10 +441,6 @@
   font-weight: normal;
 }
 
-.mushaf-line.fit {
-  justify-content: space-between;
-}
-
 .mushaf-line.para-open {
   background: #111;
   color: #fff;
@@ -476,7 +473,7 @@
 }
 
 .mushaf-line .word {
-  display: block;
+  display: inline;
   flex: 0 0 auto;
   cursor: pointer;
   border-radius: 2px;
