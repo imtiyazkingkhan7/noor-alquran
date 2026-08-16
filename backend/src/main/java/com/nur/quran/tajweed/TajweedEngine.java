@@ -10,27 +10,38 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Rule-based Tajweed tagger for Uthmani text. Tags the triggering letter
- * (noon sakinah / tanween / meem sakinah / qalqalah / madd / ghunnah).
+ * Tajweed tagger for Indo-Pak (Al Majeed / jazm) and Uthmani Quran text.
+ * Tags the triggering letter: noon sakinah / tanween, meem sakinah, qalqalah, madd, ghunnah.
  */
 @Component
 public class TajweedEngine {
 
     private static final String QALQALAH = "قطبجد";
-    private static final String IZHAR = "ءأؤإئآٱهعحغخ";
+    private static final String IZHAR = "هعحغخءأإآؤئ";
     private static final String IDGHAM_GHUNNAH = "ينمو";
     private static final String IDGHAM_NO_GHUNNAH = "لر";
-    private static final String IQLAB = "ب";
     private static final String IKHFA = "تثجدذزسشصضطظفقك";
-    private static final String MADD_LETTERS = "اوىىويىوٱٰ";
 
+    private static final int FATHA = 0x064E;
+    private static final int DAMMA = 0x064F;
+    private static final int KASRA = 0x0650;
     private static final int SUKUN = 0x0652;
     private static final int SHADDA = 0x0651;
     private static final int TANWEEN_FATHA = 0x064B;
     private static final int TANWEEN_DAMMA = 0x064C;
     private static final int TANWEEN_KASRA = 0x064D;
     private static final int MADDAH = 0x0653;
+    private static final int DAGGER_ALEF = 0x0670;
+    private static final int SUBSCRIPT_ALEF = 0x0656;
+    private static final int INVERTED_DAMMA = 0x0657;
+    private static final int JAZM = 0x06E1;
+    private static final int SMALL_HIGH_MEEM = 0x06E2;
     private static final int SMALL_HIGH_MADDA = 0x06E4;
+    private static final int SMALL_WAW = 0x06E5;
+    private static final int SMALL_YEH = 0x06E6;
+    private static final int OPEN_FATHATAN = 0x08F0;
+    private static final int OPEN_DAMMATAN = 0x08F1;
+    private static final int OPEN_KASRATAN = 0x08F2;
 
     public List<WordToken> tag(String ayahText) {
         List<Cluster> clusters = tokenize(ayahText);
@@ -68,8 +79,10 @@ public class TajweedEngine {
         if (text == null) {
             return "";
         }
-        String stripped = text.replace('\uFEFF', ' ')
+        return text.replace('\uFEFF', ' ')
+                .replaceAll("[\\uE000-\\uF8FF]", "")
                 .replaceAll("[\\u064B-\\u065F\\u0670\\u06D6-\\u06ED\\u0640\\u08F0-\\u08FF]", "")
+                .replaceAll("[\\u2000-\\u200F\\u2028-\\u202F\\u2060-\\u206F]", " ")
                 .replace('آ', 'ا')
                 .replace('أ', 'ا')
                 .replace('إ', 'ا')
@@ -78,14 +91,12 @@ public class TajweedEngine {
                 .replace('ة', 'ه')
                 .replaceAll("\\s+", " ")
                 .trim();
-        return stripped;
     }
 
     public static final String BASMALA_PLAIN = "بسم الله الرحمن الرحيم";
 
     public static boolean isBasmala(String text) {
-        String p = plain(text);
-        return p.equals(BASMALA_PLAIN) || p.equals("بسم الله الرحمن الرحيم");
+        return plain(text).equals(BASMALA_PLAIN);
     }
 
     public static String stripLeadingBasmala(String text) {
@@ -136,74 +147,238 @@ public class TajweedEngine {
             return Rule.NONE;
         }
         char letter = cluster.baseLetter;
-        boolean noonSakinah = letter == 'ن' && cluster.hasSukun;
-        boolean tanween = cluster.hasTanween;
-        boolean meemSakinah = letter == 'م' && cluster.hasSukun;
+        Next next = nextLetter(cluster, all);
+        Cluster prev = prevLetterSameWord(cluster, all);
+        boolean ayahFinal = next == null;
 
         if ((letter == 'ن' || letter == 'م') && cluster.hasShadda) {
+            if (cluster.hasMaddah) {
+                return Rule.MADD_LAZIM;
+            }
             return Rule.GHUNNAH;
         }
-        if (QALQALAH.indexOf(letter) >= 0 && cluster.hasSukun) {
-            return Rule.QALQALAH;
-        }
-        if (cluster.hasMaddah || (isMaddLetter(letter) && cluster.hasSukun)) {
-            return Rule.MADD;
+
+        boolean noonSakinah = letter == 'ن' && isSakinah(cluster);
+        boolean meemSakinah = letter == 'م' && isSakinah(cluster);
+        boolean tanween = cluster.hasTanween;
+        boolean iqlabMark = (noonSakinah || tanween) && cluster.hasSmallMeem;
+
+        if (iqlabMark || ((noonSakinah || tanween) && next != null && next.base() == 'ب')) {
+            return Rule.IQLAB;
         }
 
         if (noonSakinah || tanween) {
-            Character next = nextLetter(cluster.index, all);
-            if (next == null) {
-                return noonSakinah ? Rule.NONE : Rule.GHUNNAH;
-            }
-            if (IZHAR.indexOf(next) >= 0) {
-                return Rule.IZHAR;
-            }
-            if (IDGHAM_GHUNNAH.indexOf(next) >= 0) {
-                return Rule.IDGHAM;
-            }
-            if (IDGHAM_NO_GHUNNAH.indexOf(next) >= 0) {
-                return Rule.IDGHAM_NO_GHUNNAH;
-            }
-            if (IQLAB.indexOf(next) >= 0) {
-                return Rule.IQLAB;
-            }
-            if (IKHFA.indexOf(next) >= 0) {
-                return Rule.IKHFA;
+            if (next != null) {
+                char n = next.base();
+                if (isIzharLetter(next.cluster)) {
+                    return Rule.IZHAR;
+                }
+                if (IDGHAM_GHUNNAH.indexOf(n) >= 0) {
+                    return Rule.IDGHAM;
+                }
+                if (IDGHAM_NO_GHUNNAH.indexOf(n) >= 0) {
+                    return Rule.IDGHAM_NO_GHUNNAH;
+                }
+                if (IKHFA.indexOf(n) >= 0) {
+                    return Rule.IKHFA;
+                }
+            } else if (ayahFinal && QALQALAH.indexOf(letter) >= 0) {
+                return Rule.QALQALAH;
             }
         }
 
         if (meemSakinah) {
-            Character next = nextLetter(cluster.index, all);
             if (next == null) {
                 return Rule.IZHAR_SHAFAWI;
             }
-            if (next == 'ب') {
+            if (next.base() == 'ب') {
                 return Rule.IKHFA_SHAFAWI;
             }
-            if (next == 'م') {
+            if (next.base() == 'م') {
                 return Rule.IDGHAM_SHAFAWI;
             }
             return Rule.IZHAR_SHAFAWI;
         }
 
+        if (QALQALAH.indexOf(letter) >= 0 && (cluster.hasSukun || ayahFinal)) {
+            return Rule.QALQALAH;
+        }
+
+        Rule madd = classifyMadd(cluster, prev, next, all);
+        if (madd != Rule.NONE) {
+            return madd;
+        }
+
         return Rule.NONE;
     }
 
-    private Character nextLetter(int fromIndex, List<Cluster> all) {
-        for (int i = fromIndex + 1; i < all.size(); i++) {
+    private Rule classifyMadd(Cluster cluster, Cluster prev, Next next, List<Cluster> all) {
+        char letter = cluster.baseLetter;
+        boolean silah = isSilah(cluster, next == null ? null : next.cluster, all);
+        boolean dagger = cluster.hasDaggerAlef;
+        boolean maddah = cluster.hasMaddah;
+        boolean alifMadd = isAlif(letter) && prev != null && prev.hasFatha && !prev.hasTanween && !cluster.hasShortVowel;
+        boolean wawMadd = (letter == 'و' || letter == (char) SMALL_WAW)
+                && isMaddCarrier(cluster)
+                && prev != null
+                && prev.hasDamma;
+        boolean yaMadd = (letter == 'ي' || letter == 'ى' || letter == (char) SMALL_YEH)
+                && isMaddCarrier(cluster)
+                && prev != null
+                && prev.hasKasra;
+        boolean lin = isLin(cluster, prev);
+
+        if (lin) {
+            if (maddah || next == null) {
+                return Rule.MADD_LIN;
+            }
+            return Rule.NONE;
+        }
+
+        boolean natural = alifMadd || wawMadd || yaMadd || dagger || silah;
+        if (!natural && !maddah) {
+            return Rule.NONE;
+        }
+
+        Cluster following = next == null ? null : next.cluster;
+        boolean sameWord = next != null && !next.crossedWord;
+        if (following != null && following.hasShadda) {
+            return Rule.MADD_LAZIM;
+        }
+        if (maddah && following != null && following.hasSukun && sameWord) {
+            return Rule.MADD_LAZIM;
+        }
+        if (following != null && isHamzaSound(following)) {
+            return sameWord ? Rule.MADD_MUTTASIL : Rule.MADD_MUNFASIL;
+        }
+        if (maddah) {
+            return Rule.MADD_LAZIM;
+        }
+        return Rule.MADD_TABII;
+    }
+
+    private boolean isLin(Cluster cluster, Cluster prev) {
+        char letter = cluster.baseLetter;
+        if (letter != 'و' && letter != 'ي' && letter != 'ى') {
+            return false;
+        }
+        if (prev == null || !prev.hasFatha || prev.hasTanween) {
+            return false;
+        }
+        return cluster.hasSukun || isMaddCarrier(cluster);
+    }
+
+    private boolean isSilah(Cluster cluster, Cluster following, List<Cluster> all) {
+        if (cluster.baseLetter != 'ه' && cluster.baseLetter != 'ة') {
+            return false;
+        }
+        if (cluster.hasSubscriptAlef || cluster.hasInvertedDamma) {
+            return true;
+        }
+        if (following != null && !isSkippable(following) && (following.baseLetter == (char) SMALL_WAW
+                || following.baseLetter == (char) SMALL_YEH)) {
+            return true;
+        }
+        Cluster rawNext = rawNext(cluster, all);
+        return rawNext != null && (rawNext.baseLetter == (char) SMALL_WAW || rawNext.baseLetter == (char) SMALL_YEH);
+    }
+
+    private boolean isMaddCarrier(Cluster cluster) {
+        return !cluster.hasShortVowel && !cluster.hasTanween && !cluster.hasShadda;
+    }
+
+    private boolean isSakinah(Cluster cluster) {
+        if (cluster.hasShadda || cluster.hasTanween || cluster.hasDaggerAlef || cluster.hasShortVowel) {
+            return false;
+        }
+        return cluster.hasSukun || isMaddCarrier(cluster);
+    }
+
+    private boolean isIzharLetter(Cluster cluster) {
+        char n = cluster.baseLetter;
+        if (IZHAR.indexOf(n) >= 0) {
+            return true;
+        }
+        return isHamzaSound(cluster);
+    }
+
+    private boolean isHamzaSound(Cluster cluster) {
+        char b = cluster.baseLetter;
+        if ("ءأإآؤئ".indexOf(b) >= 0) {
+            return true;
+        }
+        return isAlif(b) && cluster.wordStart && cluster.hasShortVowel;
+    }
+
+    private boolean isWasl(Cluster cluster) {
+        if (cluster.baseLetter == 'ٱ') {
+            return true;
+        }
+        return isAlif(cluster.baseLetter)
+                && cluster.wordStart
+                && !cluster.hasShortVowel
+                && !cluster.hasMaddah
+                && !cluster.hasTanween
+                && !cluster.hasDaggerAlef;
+    }
+
+    private boolean isAlif(char letter) {
+        return letter == 'ا' || letter == 'ٱ' || letter == 'آ';
+    }
+
+    private Next nextLetter(Cluster from, List<Cluster> all) {
+        boolean crossed = false;
+        for (int i = from.index + 1; i < all.size(); i++) {
             Cluster cluster = all.get(i);
             if (cluster.whitespace) {
+                crossed = true;
                 continue;
             }
+            if (!cluster.isLetter || isSkippable(cluster)) {
+                continue;
+            }
+            if (isWasl(cluster)) {
+                crossed = true;
+                continue;
+            }
+            if (cluster.baseLetter == (char) SMALL_WAW || cluster.baseLetter == (char) SMALL_YEH) {
+                continue;
+            }
+            return new Next(cluster, crossed);
+        }
+        return null;
+    }
+
+    private Cluster rawNext(Cluster from, List<Cluster> all) {
+        for (int i = from.index + 1; i < all.size(); i++) {
+            Cluster cluster = all.get(i);
+            if (cluster.whitespace) {
+                return null;
+            }
             if (cluster.isLetter) {
-                return cluster.baseLetter;
+                return cluster;
             }
         }
         return null;
     }
 
-    private boolean isMaddLetter(char letter) {
-        return MADD_LETTERS.indexOf(letter) >= 0 || letter == 'ا' || letter == 'و' || letter == 'ي' || letter == 'ى';
+    private Cluster prevLetterSameWord(Cluster from, List<Cluster> all) {
+        for (int i = from.index - 1; i >= 0; i--) {
+            Cluster cluster = all.get(i);
+            if (cluster.whitespace) {
+                return null;
+            }
+            if (cluster.isLetter && !isSkippable(cluster)
+                    && cluster.baseLetter != (char) SMALL_WAW
+                    && cluster.baseLetter != (char) SMALL_YEH) {
+                return cluster;
+            }
+        }
+        return null;
+    }
+
+    private boolean isSkippable(Cluster cluster) {
+        return !cluster.isLetter || cluster.baseLetter == 0;
     }
 
     private List<Cluster> tokenize(String text) {
@@ -214,11 +389,17 @@ public class TajweedEngine {
         String cleaned = text.replace('\uFEFF', ' ');
         int i = 0;
         int clusterIndex = 0;
+        boolean wordStart = true;
         while (i < cleaned.length()) {
             int cp = cleaned.codePointAt(i);
             int size = Character.charCount(cp);
-            if (Character.isWhitespace(cp)) {
+            if (isIgnorableFormat(cp)) {
+                i += size;
+                continue;
+            }
+            if (Character.isWhitespace(cp) || isSpacingPause(cp)) {
                 clusters.add(Cluster.space(clusterIndex++));
+                wordStart = true;
                 i += size;
                 continue;
             }
@@ -231,33 +412,104 @@ public class TajweedEngine {
             boolean shadda = false;
             boolean tanween = false;
             boolean maddah = false;
+            boolean dagger = false;
+            boolean fatha = false;
+            boolean damma = false;
+            boolean kasra = false;
+            boolean smallMeem = false;
+            boolean subscriptAlef = false;
+            boolean invertedDamma = false;
             while (i < cleaned.length()) {
                 int mark = cleaned.codePointAt(i);
                 if (!isMark(mark)) {
                     break;
                 }
                 glyph.appendCodePoint(mark);
-                if (mark == SUKUN) {
+                if (mark == SUKUN || mark == JAZM) {
                     sukun = true;
                 }
                 if (mark == SHADDA) {
                     shadda = true;
                 }
-                if (mark == TANWEEN_FATHA || mark == TANWEEN_DAMMA || mark == TANWEEN_KASRA) {
+                if (mark == TANWEEN_FATHA || mark == TANWEEN_DAMMA || mark == TANWEEN_KASRA
+                        || mark == OPEN_FATHATAN || mark == OPEN_DAMMATAN || mark == OPEN_KASRATAN) {
                     tanween = true;
                 }
                 if (mark == MADDAH || mark == SMALL_HIGH_MADDA) {
                     maddah = true;
                 }
+                if (mark == DAGGER_ALEF) {
+                    dagger = true;
+                }
+                if (mark == FATHA) {
+                    fatha = true;
+                }
+                if (mark == DAMMA) {
+                    damma = true;
+                }
+                if (mark == KASRA) {
+                    kasra = true;
+                }
+                if (mark == SMALL_HIGH_MEEM) {
+                    smallMeem = true;
+                }
+                if (mark == SUBSCRIPT_ALEF) {
+                    subscriptAlef = true;
+                }
+                if (mark == INVERTED_DAMMA) {
+                    invertedDamma = true;
+                }
                 i += Character.charCount(mark);
             }
-            clusters.add(new Cluster(clusterIndex++, glyph.toString(), letter, base, sukun, shadda, tanween, maddah, false));
+            clusters.add(new Cluster(
+                    clusterIndex++,
+                    glyph.toString(),
+                    letter,
+                    base,
+                    sukun,
+                    shadda,
+                    tanween,
+                    maddah,
+                    dagger,
+                    fatha,
+                    damma,
+                    kasra,
+                    smallMeem,
+                    subscriptAlef,
+                    invertedDamma,
+                    wordStart,
+                    false
+            ));
+            if (letter) {
+                wordStart = false;
+            }
         }
         return clusters;
     }
 
+    private boolean isIgnorableFormat(int cp) {
+        int type = Character.getType(cp);
+        return type == Character.FORMAT
+                || (cp >= 0x200B && cp <= 0x200F)
+                || (cp >= 0x202A && cp <= 0x202E)
+                || cp == 0xFEFF;
+    }
+
+    private boolean isSpacingPause(int cp) {
+        return cp == 0x00A0 || cp == 0x2000 || cp == 0x2001 || cp == 0x2002
+                || cp == 0x2003 || cp == 0x2004 || cp == 0x2005 || cp == 0x2006
+                || cp == 0x2007 || cp == 0x2008 || cp == 0x2009 || cp == 0x200A
+                || cp == 0x202F || cp == 0x205F;
+    }
+
     private boolean isArabicLetter(int cp) {
-        if (isMark(cp) || Character.isWhitespace(cp)) {
+        if (isMark(cp) || Character.isWhitespace(cp) || isIgnorableFormat(cp)) {
+            return false;
+        }
+        if (cp >= 0xE000 && cp <= 0xF8FF) {
+            return false;
+        }
+        if (cp >= 0x06D6 && cp <= 0x06ED && cp != SMALL_WAW && cp != SMALL_YEH) {
             return false;
         }
         Character.UnicodeBlock block = Character.UnicodeBlock.of(cp);
@@ -266,7 +518,8 @@ public class TajweedEngine {
                 || block == Character.UnicodeBlock.ARABIC_EXTENDED_A
                 || (cp >= 0x0621 && cp <= 0x064A)
                 || cp == 0x0671
-                || cp == 0x0670;
+                || cp == SMALL_WAW
+                || cp == SMALL_YEH;
     }
 
     private boolean isMark(int cp) {
@@ -274,12 +527,13 @@ public class TajweedEngine {
         return type == Character.NON_SPACING_MARK
                 || type == Character.ENCLOSING_MARK
                 || (cp >= 0x064B && cp <= 0x065F)
-                || (cp >= 0x06D6 && cp <= 0x06ED)
+                || (cp >= 0x06D6 && cp <= 0x06ED && cp != SMALL_WAW && cp != SMALL_YEH)
                 || cp == 0x0670
-                || cp == 0x0640;
+                || cp == 0x0640
+                || (cp >= 0x08F0 && cp <= 0x08FF);
     }
 
-    private enum Rule {
+    enum Rule {
         NONE("none", ""),
         GHUNNAH("ghunnah", "Ghunnah"),
         QALQALAH("qalqalah", "Qalqalah"),
@@ -291,14 +545,24 @@ public class TajweedEngine {
         IKHFA_SHAFAWI("ikhfa-shafawi", "Ikhfa shafawi"),
         IDGHAM_SHAFAWI("idgham-shafawi", "Idgham shafawi"),
         IZHAR_SHAFAWI("izhar-shafawi", "Izhar shafawi"),
-        MADD("madd", "Madd");
+        MADD_TABII("madd-tabii", "Madd tabi'i"),
+        MADD_MUNFASIL("madd-munfasil", "Madd munfasil"),
+        MADD_MUTTASIL("madd-muttasil", "Madd muttasil"),
+        MADD_LAZIM("madd-lazim", "Madd lazim"),
+        MADD_LIN("madd-lin", "Madd lin");
 
-        private final String id;
-        private final String label;
+        final String id;
+        final String label;
 
         Rule(String id, String label) {
             this.id = id;
             this.label = label;
+        }
+    }
+
+    private record Next(Cluster cluster, boolean crossedWord) {
+        char base() {
+            return cluster.baseLetter;
         }
     }
 
@@ -311,10 +575,25 @@ public class TajweedEngine {
             boolean hasShadda,
             boolean hasTanween,
             boolean hasMaddah,
+            boolean hasDaggerAlef,
+            boolean hasFatha,
+            boolean hasDamma,
+            boolean hasKasra,
+            boolean hasSmallMeem,
+            boolean hasSubscriptAlef,
+            boolean hasInvertedDamma,
+            boolean wordStart,
             boolean whitespace
     ) {
+        boolean hasShortVowel() {
+            return hasFatha || hasDamma || hasKasra;
+        }
+
         static Cluster space(int index) {
-            return new Cluster(index, " ", false, ' ', false, false, false, false, true);
+            return new Cluster(
+                    index, " ", false, ' ', false, false, false, false, false,
+                    false, false, false, false, false, false, false, true
+            );
         }
     }
 }
