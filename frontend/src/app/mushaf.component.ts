@@ -9,8 +9,7 @@ import { namedParas, paraName } from './para-names';
 
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const FONT = '44px "Al Majeed Quranic"';
-const WORD_GAP = 4;
-const MARK_SIZE = 30;
+const MARK_SIZE = 28;
 const LINE_HEIGHT = 62;
 
 type Token =
@@ -181,6 +180,10 @@ export class MushafComponent implements OnDestroy {
     const list = this.pageSurahs();
     const current = list.find((row) => row.num === this.currentSurah());
     return current ?? list[0] ?? { ar: '', en: '' };
+  }
+
+  lineFilled(line: Line): boolean {
+    return !line.short && this.lineKind(line) === 'text' && line.tokens.length > 1;
   }
 
   lineKind(line: Line): 'text' | 'title' | 'basmala' {
@@ -510,7 +513,7 @@ export class MushafComponent implements OnDestroy {
     const font = `${size} "Al Majeed Quranic"`;
     const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
     const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack11`;
+    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack13`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }
@@ -645,6 +648,7 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
   const lines: Line[] = [];
   let tokens: Token[] = [];
   let used = 0;
+  const gap = 2;
   const flush = (short: boolean): void => {
     if (!tokens.length) {
       return;
@@ -655,7 +659,7 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
     used = 0;
   };
   const add = (token: Token, size: number): void => {
-    const next = tokens.length ? used + WORD_GAP + size : size;
+    const next = tokens.length ? used + gap + size : size;
     if (tokens.length && next > maxWidth) {
       flush(false);
       used = size;

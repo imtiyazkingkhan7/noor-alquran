@@ -408,7 +408,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 4px 0 2px;
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -426,15 +426,16 @@
   height: var(--mushaf-line-h);
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
-  font-size: 0;
+  padding: 0 2px;
+  font-size: var(--mushaf-size);
+  font-family: var(--quran);
   line-height: var(--mushaf-line-h);
   white-space: nowrap;
   overflow: hidden;
   color: var(--ink);
   letter-spacing: 0;
   word-spacing: 0;
-  border-bottom: 1px solid var(--frame-inner);
+  border-bottom: 1px solid #2a2118;
   font-weight: normal;
   font-synthesis: none;
   font-feature-settings: "liga" 1, "calt" 1, "kern" 1, "rlig" 1, "locl" 1;
@@ -446,17 +447,31 @@
   -moz-osx-font-smoothing: auto;
 }
 
-.mushaf-line > * {
-  font-size: var(--mushaf-size);
-  font-family: var(--quran);
-  display: inline-block;
+.mushaf-line.filled {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+}
+
+.mushaf-line .word,
+.mushaf-line .ayah-cluster,
+.mushaf-line .surah-title,
+.mushaf-line .basmala {
+  font-size: inherit;
+  font-family: inherit;
+  display: inline;
   vertical-align: middle;
   margin: 0;
   padding: 0;
+  letter-spacing: 0;
+  word-spacing: 0;
 }
 
-.mushaf-line > * + * {
-  margin-inline-start: 0.1em;
+.mushaf-line.filled .word,
+.mushaf-line.filled .ayah-cluster {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .mushaf-line.title,
@@ -493,18 +508,13 @@
 }
 
 .mushaf-line:last-child {
-  border-bottom: none;
+  border-bottom: 1px solid #2a2118;
 }
 
 .mushaf-line .word {
-  display: inline-block;
   cursor: pointer;
   border-radius: 2px;
   font-weight: normal;
-  font: inherit;
-  line-height: inherit;
-  letter-spacing: 0;
-  word-spacing: 0;
 }
 
 .mushaf-line .word .t {
@@ -523,10 +533,8 @@
 }
 
 .ayah-cluster {
-  display: inline-flex;
-  align-items: center;
+  display: inline;
   white-space: nowrap;
-  column-gap: 0.05em;
   font-size: var(--mushaf-size);
 }
 
@@ -534,9 +542,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin: 0;
+  width: 26px;
+  height: 26px;
+  margin-inline-start: 0.04em;
   padding: 0;
   border: 2.2px solid #1c140c;
   border-radius: 50%;
@@ -545,7 +553,6 @@
   cursor: pointer;
   color: #1c140c;
   vertical-align: middle;
-  flex: 0 0 auto;
 }
 
 .ayah-end .ayah-num {

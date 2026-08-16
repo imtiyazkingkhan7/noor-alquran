@@ -66,6 +66,7 @@
                     [class.title]="lineKind(line) === 'title'"
                     [class.basmala-line]="lineKind(line) === 'basmala'"
                     [class.para-open]="isParaOpenLine($index)"
+                    [class.filled]="lineFilled(line)"
                   >@for (token of line.tokens; track $index) {@if (token.kind === 'word') {<span
                       class="word"
                       [id]="'w-' + ayahSurah(token.ayah) + '-' + token.ayah.n + '-' + token.index"
