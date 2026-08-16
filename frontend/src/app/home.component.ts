@@ -61,12 +61,6 @@ import { InstallService } from './install.service';
   `,
   styles: [`
     .home { padding: 28px 24px 48px; max-width: 560px; margin: 0 auto; }
-    .next-prayer {
-      margin: 8px 0 0;
-      color: var(--gold);
-      font-size: 13px;
-      letter-spacing: 0.06em;
-    }
     .item.lessons { padding: 12px 18px; }
     .item.lessons b { font-size: 20px; }
     @media (max-width: 900px) {

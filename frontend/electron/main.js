@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Notification, ipcMain, session } = require('electron');
+const { app, BrowserWindow, session } = require('electron');
 const path = require('path');
 
 const DEV_URL = 'http://127.0.0.1:4200/';
@@ -13,10 +13,7 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 
 function allowPermission(permission) {
-  return permission === 'geolocation'
-    || permission === 'notifications'
-    || permission === 'media'
-    || permission === 'microphone';
+  return permission === 'media' || permission === 'microphone';
 }
 
 function createWindow() {
@@ -68,21 +65,6 @@ if (!gotLock) {
       callback(allowPermission(permission));
     });
     session.defaultSession.setPermissionCheckHandler((_webContents, permission) => allowPermission(permission));
-
-    ipcMain.handle('prayer-notify', (_event, payload) => {
-      if (!Notification.isSupported()) {
-        return false;
-      }
-      const note = new Notification({
-        title: payload?.title || 'Noor',
-        body: payload?.body || '',
-        silent: true
-      });
-      note.show();
-      return true;
-    });
-
-    ipcMain.handle('prayer-notify-permission', () => Notification.isSupported());
 
     createWindow();
     app.on('activate', () => {

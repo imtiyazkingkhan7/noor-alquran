@@ -2,7 +2,7 @@
   "id": "https://noor-alquran.onrender.com/",
   "name": "Noor · Al-Quran",
   "short_name": "Noor",
-  "description": "Noor · Al-Quran — read the Mushaf, find Qibla, and recite with a teacher.",
+  "description": "Noor · Al-Quran — read the Mushaf and recite with a teacher.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
