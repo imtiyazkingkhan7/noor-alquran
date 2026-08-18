@@ -51,7 +51,7 @@ public final class QuranDtos {
     public record PageItem(SurahSummary surah, AyahView ayah, boolean surahStarts) {
     }
 
-    public record PageView(int page, int juz, int pageCount, List<PageItem> items) {
+    public record PageView(int page, int juz, int pageCount, List<JuzAyah> ayahs) {
     }
 
     public record JuzView(int number, int startSurah, int startAyah, int startPage, String englishName, String arabicName) {
@@ -67,6 +67,7 @@ public final class QuranDtos {
             String en,
             boolean rukuEnds,
             boolean surahStarts,
+            int page,
             List<WordToken> words
     ) {
         public JuzAyah {

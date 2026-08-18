@@ -7,6 +7,8 @@ export interface ReaderAyah {
   surahEn?: string;
   surahAr?: string;
   surahStarts?: boolean;
+  page?: number;
+  juz?: number;
   words?: WordToken[];
 }
 
@@ -124,7 +126,7 @@ export interface PageView {
   page: number;
   juz: number;
   pageCount: number;
-  items: PageItem[];
+  ayahs: ReaderAyah[];
 }
 
 export interface JuzView {

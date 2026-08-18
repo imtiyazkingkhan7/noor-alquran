@@ -8,7 +8,7 @@
   --ink-dim: #b7c4bc;
   --frame-inner: #5a4630;
   --mushaf-size: 44px;
-  --mushaf-line-h: 62px;
+  --mushaf-line-h: 56px;
   display: block;
   height: calc(100dvh - var(--top-h) - var(--tab-h));
 }
@@ -106,7 +106,7 @@
   color: var(--ink);
   direction: rtl;
   font-family: var(--quran);
-  line-height: 1.35;
+  line-height: 1.85;
 }
 
 #main {
@@ -161,23 +161,30 @@
 
 .ruku-gutter {
   position: absolute;
-  left: -34px;
+  left: calc(12.6% - 34px);
   top: 9.4%;
   bottom: 9.4%;
   width: 28px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  padding: 6px 0 8px;
+  box-sizing: border-box;
   z-index: 4;
   pointer-events: none;
+  overflow: visible;
+  direction: ltr;
 }
 
 .ruku-slot {
-  height: var(--mushaf-line-h);
+  flex: 1 0 0;
+  min-height: 0;
+  height: auto;
   display: grid;
   place-items: center;
   font-family: var(--quran);
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: 800;
   color: #1c140c;
   line-height: 1;
 }
@@ -187,6 +194,9 @@
   height: 26px;
   display: grid;
   place-items: center;
+  font-weight: 800;
+  font-synthesis: weight;
+  -webkit-text-stroke: 0.45px #1c140c;
   border: 1px solid #5a4630;
   border-radius: 50%;
   background: #f6eedc;
@@ -197,21 +207,26 @@
 }
 
 .page-kicker {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  width: 100%;
-  margin: 0 0 6px;
-  padding: 0 4px;
+  display: none;
 }
 
 .surah-head {
+  position: absolute;
+  top: 1.35%;
+  right: 12.6%;
+  z-index: 6;
   font-family: var(--quran);
   font-size: 26px;
   font-weight: normal;
-  color: var(--gold);
-  line-height: 1.2;
+  color: #100c08;
+  line-height: 1.15;
   text-align: right;
+  display: inline-block;
+  padding: 2px 14px 4px;
+  border: 2px solid #ffffff;
+  background: #ffffff;
+  box-sizing: border-box;
+  pointer-events: none;
 }
 
 .leaf-chip {
@@ -399,7 +414,7 @@
   margin: 0;
   text-align: center;
   font-family: var(--quran);
-  font-size: 30px;
+  font-size: var(--mushaf-size);
   font-weight: normal;
   color: var(--ink);
 }
@@ -407,9 +422,12 @@
 .well {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
-  padding: 0;
+  overflow: visible;
+  padding: 6px 4px 8px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .empty {
@@ -421,26 +439,33 @@
 
 .mushaf-line {
   position: relative;
-  display: block;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1 1 0;
+  min-height: 0;
   width: 100%;
-  height: var(--mushaf-line-h);
+  height: auto;
   box-sizing: border-box;
   margin: 0;
-  padding: 0 2px;
+  padding: 0.22em 6px;
   font-size: var(--mushaf-size);
   font-family: var(--quran);
   line-height: var(--mushaf-line-h);
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   color: var(--ink);
   letter-spacing: 0;
   word-spacing: 0;
   border-bottom: 1px solid #2a2118;
   font-weight: normal;
   font-synthesis: none;
-  font-feature-settings: "liga" 1, "calt" 1, "kern" 1, "rlig" 1, "locl" 1;
+  font-feature-settings: "liga" 1, "calt" 1, "kern" 1, "rlig" 1, "locl" 1, "mark" 1, "mkmk" 1;
+  font-variant-ligatures: common-ligatures;
   direction: rtl;
-  unicode-bidi: embed;
+  unicode-bidi: isolate;
   text-align: start;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: subpixel-antialiased;
@@ -448,36 +473,55 @@
 }
 
 .mushaf-line.filled {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 0;
 }
 
-.mushaf-line .word,
-.mushaf-line .ayah-cluster,
-.mushaf-line .surah-title,
-.mushaf-line .basmala {
-  font-size: inherit;
-  font-family: inherit;
-  display: inline;
-  vertical-align: middle;
-  margin: 0;
-  padding: 0;
-  letter-spacing: 0;
-  word-spacing: 0;
-}
-
-.mushaf-line.filled .word,
-.mushaf-line.filled .ayah-cluster {
+.mushaf-line > .word,
+.mushaf-line > .surah-title,
+.mushaf-line > .basmala {
   display: block;
   flex: 0 0 auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  font-size: var(--mushaf-size);
+  font-family: inherit;
+  line-height: var(--mushaf-line-h);
+  letter-spacing: 0;
+  word-spacing: 0;
+  overflow: visible;
+  transform: none;
+}
+
+.mushaf-line > .ayah-cluster {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  flex: 0 0 auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  font-size: var(--mushaf-size);
+  font-family: inherit;
+  line-height: var(--mushaf-line-h);
+  letter-spacing: 0;
+  word-spacing: 0;
+  overflow: visible;
+}
+
+.mushaf-line > .ayah-cluster > .word {
+  display: block;
+  height: auto;
+  overflow: visible;
+  font-size: var(--mushaf-size);
+  line-height: var(--mushaf-line-h);
 }
 
 .mushaf-line.title,
 .mushaf-line.basmala-line {
+  justify-content: center;
   text-align: center;
-  border-bottom: none;
   font-weight: normal;
 }
 
@@ -485,25 +529,34 @@
   background: #111;
   color: #fff;
   border-bottom-color: #111;
-  padding: 0;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .mushaf-line.para-open .word,
-.mushaf-line.para-open .ruku-in,
+.mushaf-line.para-open .ayah-cluster,
 .mushaf-line.para-open .ayah-num,
 .mushaf-line.para-open .basmala,
 .mushaf-line.para-open .surah-title {
   color: #fff;
+  -webkit-text-fill-color: #fff;
+  -webkit-text-stroke: 0.2px #fff;
 }
 
 .mushaf-line.para-open .ayah-end {
-  border-color: #fff;
+  border-color: #d4af67;
   background: #111;
   color: #fff;
 }
 
+.mushaf-line.para-open .ayah-end .ayah-num {
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  -webkit-text-stroke: 0.35px #fff;
+}
+
 .mushaf-line .surah-title {
-  font-size: 36px;
+  font-size: var(--mushaf-size);
   font-weight: normal;
 }
 
@@ -533,7 +586,6 @@
 }
 
 .ayah-cluster {
-  display: inline;
   white-space: nowrap;
   font-size: var(--mushaf-size);
 }
@@ -542,9 +594,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
   width: 26px;
   height: 26px;
-  margin-inline-start: 0.04em;
+  margin: 0;
   padding: 0;
   border: 2.2px solid #1c140c;
   border-radius: 50%;
@@ -552,7 +605,7 @@
   font-size: 1em;
   cursor: pointer;
   color: #1c140c;
-  vertical-align: middle;
+  line-height: 1;
 }
 
 .ayah-end .ayah-num {
@@ -565,17 +618,7 @@
 }
 
 .ruku-in {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--quran);
-  font-size: 0.72em;
-  font-weight: 800;
-  font-synthesis: weight;
-  line-height: 1;
-  color: var(--ink);
-  margin: 0;
-  vertical-align: middle;
+  display: none;
 }
 
 #placeholder {
@@ -660,8 +703,8 @@
   .page-row { gap: 4px; flex: 1; min-height: 0; align-items: stretch; }
   .page-side { display: none; }
   .page-stage { flex: 1; min-width: 0; display: flex; flex-direction: column; touch-action: pan-y; }
-  .page-kicker { margin: 2px 0 4px; padding: 28px 8px 0 0; width: 100%; justify-content: flex-end; }
-  .surah-head { font-size: 20px; }
+  .page-kicker { display: none; }
+  .surah-head { font-size: 20px; top: 1.2%; right: 12.6%; }
   .surah-chip { min-width: 0; padding: 4px 10px; }
   .surah-chip b { font-size: 18px; }
   .sheet-wrap { flex: 1; min-height: 0; display: grid; place-items: center; }
@@ -677,9 +720,7 @@
   }
   .mushaf-line {
     font-size: var(--mushaf-size);
-    height: var(--mushaf-line-h);
   }
-  .ruku-slot { height: var(--mushaf-line-h); }
   .phone-legend {
     position: relative;
     color: var(--ink);

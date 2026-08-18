@@ -4,13 +4,15 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { QuranApi } from './quran.api';
 import { ReadingStore } from './reading.store';
 import { TeacherHalt, TeacherSession } from './teacher.session';
-import { AyahView, JuzView, LetterToken, ReaderAyah, ReaderPara, ReciterView } from './models';
+import { AyahView, JuzView, LetterToken, PageView, ReaderAyah, ReciterView } from './models';
 import { namedParas, paraName } from './para-names';
 
 const EASTERN = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const FONT = '44px "Al Majeed Quranic"';
 const MARK_SIZE = 28;
-const LINE_HEIGHT = 62;
+const LINE_HEIGHT = 56;
+const LINES_PER_PAGE = 8;
+const MADINAH_PAGES = 604;
 
 type Token =
   | { kind: 'word'; ayah: ReaderAyah; index: number; text: string; letters: LetterToken[] }
@@ -29,14 +31,17 @@ export class MushafComponent implements OnDestroy {
   private readonly api = inject(QuranApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly host = inject(ElementRef<HTMLElement>);
   readonly store = inject(ReadingStore);
   readonly teacher = inject(TeacherSession);
 
   readonly paras = signal<JuzView[]>([]);
   readonly reciters = signal<ReciterView[]>([]);
-  readonly detail = signal<ReaderPara | null>(null);
+  readonly pageView = signal<PageView | null>(null);
+  readonly allAyahs = signal<ReaderAyah[]>([]);
   readonly pages = signal<Line[][]>([]);
   readonly leaf = signal(0);
+  readonly pageNumber = signal(1);
   readonly currentSurah = signal(1);
   readonly currentAyah = signal(1);
   readonly reciter = signal('ar.alafasy');
@@ -53,7 +58,6 @@ export class MushafComponent implements OnDestroy {
   private audio?: HTMLAudioElement;
   private observer?: ResizeObserver;
   private lastPack = '';
-  private pendingLastLeaf = false;
   private keepPlaying = false;
   private pageQueue: ReaderAyah[] = [];
   private queueIndex = 0;
@@ -68,51 +72,52 @@ export class MushafComponent implements OnDestroy {
       error: () => this.paras.set(namedParas([]))
     });
     this.route.queryParamMap.subscribe((params) => {
+      const page = Number(params.get('page') || 0);
       const para = Number(params.get('para') || 0);
       const surah = Number(params.get('surah') || 0);
-      const leafRaw = Number(params.get('leaf') || 1);
-      const leaf = leafRaw < 0 ? 0 : Math.max(0, leafRaw - 1);
       const ayah = Number(params.get('ayah') || 0);
-      this.pendingLastLeaf = leafRaw < 0;
-      if (para) {
-        if (this.detail()?.num === para && this.pages().length) {
-          this.leaf.set(this.pendingLastLeaf ? this.pages().length - 1 : Math.min(leaf, this.pages().length - 1));
-          if (ayah) {
-            this.currentAyah.set(ayah);
-            if (surah) {
-              this.currentSurah.set(surah);
-            }
-            this.showLeafFor(this.currentSurah(), ayah);
-          }
-          if (this.keepPlaying) {
-            window.setTimeout(() => this.startPageQueue(this.pageAyahs()), 40);
-          }
-          return;
-        }
-        this.openPara(para, leaf, ayah, surah);
+      if (para && !page && !surah) {
+        this.openPara(para);
+        return;
+      }
+      if (page) {
+        this.openPage(page, ayah, surah, para);
         return;
       }
       if (surah) {
         this.api.verse(surah, ayah || 1).subscribe({
-          next: (view) => this.openPara(view.juz || 1, leaf, view.ayah, view.surah),
-          error: () => this.openPara(1, 0, 0)
+          next: (view) => this.openPage(view.page || 1, view.ayah, view.surah),
+          error: () => this.openPage(1, 0, 0)
         });
         return;
       }
-      this.openPara(1, 0, 0);
+      if (para) {
+        this.openPara(para);
+        return;
+      }
+      this.openPage(1, 0, 0);
     });
     afterNextRender(() => {
-      const run = () => this.packToWidth(true);
+      const run = () => {
+        this.packToWidth(true);
+        this.restoreLeafFromRoute();
+      };
+      if (document.fonts?.load) {
+        void Promise.all([
+          document.fonts.load(FONT),
+          document.fonts.load('38px "Al Majeed Quranic"')
+        ]).then(run);
+      }
       if (document.fonts?.ready) {
         void document.fonts.ready.then(run);
-      } else if (document.fonts?.load) {
-        void document.fonts.load(FONT).then(run);
       }
       run();
-      const el = this.well()?.nativeElement;
-      if (el && typeof ResizeObserver !== 'undefined') {
-        this.observer = new ResizeObserver(() => this.packToWidth());
-        this.observer.observe(el);
+      if (typeof ResizeObserver !== 'undefined') {
+        this.observer = new ResizeObserver(() => {
+          this.packToWidth();
+          this.showLeafFor(this.currentSurah(), this.currentAyah());
+        });
+        this.observer.observe(this.host.nativeElement);
       }
     });
   }
@@ -133,10 +138,34 @@ export class MushafComponent implements OnDestroy {
   }
 
   currentLines(): Line[] {
-    return this.pages()[this.leaf()] ?? [];
+    const lines = this.pages()[this.leaf()] ?? [];
+    const padded = lines.slice();
+    while (padded.length < LINES_PER_PAGE) {
+      padded.push({ tokens: [], short: true, extra: 0 });
+    }
+    return padded;
   }
 
   pageAyahs(): ReaderAyah[] {
+    return this.allAyahs();
+  }
+
+  currentJuz(): number {
+    const first = this.leafAyahs()[0];
+    if (first?.juz && first.juz > 0) {
+      return first.juz;
+    }
+    const page = first?.page || this.pageNumber();
+    let juz = 1;
+    for (const para of this.paras()) {
+      if (para.startPage <= page) {
+        juz = para.number;
+      }
+    }
+    return juz;
+  }
+
+  leafAyahs(): ReaderAyah[] {
     const list: ReaderAyah[] = [];
     const seen = new Set<string>();
     for (const line of this.currentLines()) {
@@ -158,7 +187,8 @@ export class MushafComponent implements OnDestroy {
   pageSurahs(): { num: number; ar: string; en: string }[] {
     const list: { num: number; ar: string; en: string }[] = [];
     const seen = new Set<number>();
-    for (const ayah of this.pageAyahs()) {
+    const ayahs = this.leafAyahs().length ? this.leafAyahs() : this.pageAyahs();
+    for (const ayah of ayahs) {
       const num = this.ayahSurah(ayah);
       if (seen.has(num)) {
         continue;
@@ -166,17 +196,16 @@ export class MushafComponent implements OnDestroy {
       seen.add(num);
       list.push({ num, ar: ayah.surahAr || '', en: ayah.surahEn || '' });
     }
-    if (!list.length) {
-      const ayah = this.detail()?.ayahs.find((item) => this.ayahSurah(item) === this.currentSurah())
-        ?? this.detail()?.ayahs[0];
-      if (ayah) {
-        list.push({ num: this.ayahSurah(ayah), ar: ayah.surahAr || '', en: ayah.surahEn || '' });
-      }
-    }
     return list;
   }
 
   headerSurah(): { ar: string; en: string } {
+    const ayahs = this.leafAyahs();
+    const started = ayahs.find((ayah) => ayah.surahStarts);
+    const pick = started ?? ayahs[0];
+    if (pick) {
+      return { ar: pick.surahAr || '', en: pick.surahEn || '' };
+    }
     const list = this.pageSurahs();
     const current = list.find((row) => row.num === this.currentSurah());
     return current ?? list[0] ?? { ar: '', en: '' };
@@ -193,24 +222,64 @@ export class MushafComponent implements OnDestroy {
     if (line.tokens[0]?.kind === 'title') {
       return 'title';
     }
+    const first = line.tokens[0];
+    if (
+      line.tokens.length === 1
+      && first?.kind === 'close'
+      && (first.ayah.surah || 1) === 1
+      && first.ayah.n === 1
+    ) {
+      return 'basmala';
+    }
     return 'text';
   }
 
-  lineHasRuku(line: Line): boolean {
-    return line.tokens.some((token) => token.kind === 'close' && token.ruku);
+  lineHasRuku(line: Line, index: number): boolean {
+    const lines = this.currentLines();
+    const close = rukuClose(line);
+    if (close) {
+      return !isRukuLeftover(line, index, lines);
+    }
+    const next = lines[index + 1];
+    const nextClose = next ? rukuClose(next) : undefined;
+    if (!nextClose || !isRukuLeftover(next, index + 1, lines)) {
+      return false;
+    }
+    return line.tokens.some((token) =>
+      (token.kind === 'word' || token.kind === 'close')
+      && token.ayah.n === nextClose.ayah.n
+      && this.ayahSurah(token.ayah) === this.ayahSurah(nextClose.ayah)
+    );
   }
 
   isParaOpenLine(index: number): boolean {
-    if (this.leaf() !== 0) {
+    if (!this.isParaStartLeaf()) {
       return false;
     }
     const lines = this.currentLines();
-    const first = lines.findIndex((line) => this.lineKind(line) === 'text');
+    const first = lines.findIndex((line) => this.lineKind(line) === 'text' && line.tokens.length > 0);
     return first >= 0 && index === first;
   }
 
-  showHeader(): boolean {
-    return false;
+  private isParaStartLeaf(): boolean {
+    const i = this.leaf();
+    const juz = leafJuz(this.pages()[i]);
+    if (i <= 0) {
+      return true;
+    }
+    return juz > 0 && leafJuz(this.pages()[i - 1]) !== juz;
+  }
+
+  lastPage(): number {
+    return Math.max(this.pages().length, 1);
+  }
+
+  atFirstLeaf(): boolean {
+    return this.leaf() <= 0;
+  }
+
+  atLastLeaf(): boolean {
+    return this.leaf() >= Math.max(this.pages().length - 1, 0);
   }
 
   eastern(value: number | undefined | null): string {
@@ -248,59 +317,147 @@ export class MushafComponent implements OnDestroy {
     return '';
   }
 
-  openPara(number: number, leaf = 0, ayah = 0, surah = 0): void {
+  openPara(number: number): void {
     if (number < 1 || number > 30) {
       return;
     }
+    this.error.set('');
+    this.stop();
+    this.teacher.stop();
+    this.haltWord.set(-1);
+    this.ensureCorpus(() => {
+      this.loading.set(false);
+      const firstAyah = this.allAyahs().find((ayah) => ayahJuz(ayah) === number);
+      if (firstAyah) {
+        this.currentSurah.set(this.ayahSurah(firstAyah));
+        this.currentAyah.set(firstAyah.n);
+        this.pageNumber.set(firstAyah.page || 1);
+      }
+      this.syncPageView();
+      window.setTimeout(() => {
+        this.packToWidth(true);
+        this.showLeafForJuz(number);
+        const first = this.leafAyahs()[0] ?? firstAyah;
+        if (first) {
+          this.currentSurah.set(this.ayahSurah(first));
+          this.currentAyah.set(first.n);
+          this.pageNumber.set(first.page || 1);
+          this.store.mark({
+            page: first.page || 1,
+            surah: this.ayahSurah(first),
+            ayah: first.n
+          });
+        }
+        this.syncPageView();
+      }, 40);
+    });
+  }
+
+  openPage(page: number, ayah = 0, surah = 0, para = 0): void {
+    const next = clampPage(page);
+    this.pageNumber.set(next);
+    if (ayah) {
+      this.currentAyah.set(ayah);
+      if (surah) {
+        this.currentSurah.set(surah);
+      }
+    }
+    if (
+      !ayah
+      && this.allAyahs().length
+      && this.pages().length
+      && this.leafHasMadinah(next)
+      && (!para || this.currentJuz() === para)
+    ) {
+      this.syncPageView();
+      return;
+    }
     const resume = this.keepPlaying;
-    this.loading.set(true);
     this.error.set('');
     this.stop();
     this.keepPlaying = resume;
     this.teacher.stop();
     this.haltWord.set(-1);
-    this.api.para(number).subscribe({
-      next: (detail) => {
-        this.detail.set(detail);
-        this.lastPack = '';
-        this.pages.set([]);
-        const first = detail.ayahs[0];
-        this.currentSurah.set(surah || first?.surah || 1);
-        this.currentAyah.set(ayah || first?.n || 1);
-        this.loading.set(false);
+    this.ensureCorpus(() => {
+      this.loading.set(false);
+      this.syncPageView();
+      window.setTimeout(() => {
+        const stay = !ayah
+          && this.pages().length > 0
+          && this.leafHasMadinah(next)
+          && (!para || this.currentJuz() === para);
+        this.packToWidth(true);
+        if (ayah) {
+          this.showLeafFor(surah || this.currentSurah(), ayah);
+        } else if (!stay) {
+          this.showLeafForMadinah(next, para);
+        }
+        const first = this.leafAyahs()[0];
+        if (first && !ayah) {
+          this.currentSurah.set(this.ayahSurah(first));
+          this.currentAyah.set(first.n);
+        }
         this.store.mark({
-          page: 1,
+          page: first?.page || next,
           surah: this.currentSurah(),
           ayah: this.currentAyah()
         });
-        window.setTimeout(() => {
-          this.packToWidth();
-          if (this.pendingLastLeaf) {
-            this.leaf.set(Math.max(0, this.pages().length - 1));
-            this.pendingLastLeaf = false;
-          } else {
-            const fromAyah = ayah ? leafIndexFor(this.pages(), this.currentSurah(), ayah) : leaf;
-            this.leaf.set(Math.max(0, Math.min(fromAyah, Math.max(this.pages().length - 1, 0))));
-          }
-          if (this.keepPlaying) {
-            this.startPageQueue(this.pageAyahs());
-          }
-        }, 40);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.detail.set(null);
-        this.error.set('Cannot reach the Spring Boot API on port 8080.');
+        this.syncPageView();
+        if (this.keepPlaying) {
+          this.startPageQueue(this.leafAyahs());
+        }
+      }, 40);
+    });
+  }
+
+  goPara(number: number): void {
+    if (number < 1 || number > 30) {
+      return;
+    }
+    void this.router.navigate(['/read'], { queryParams: { para: number } });
+    this.paraDrawer.set(false);
+  }
+
+  goPage(page: number, para?: number): void {
+    const next = clampPage(page);
+    void this.router.navigate(['/read'], {
+      queryParams: {
+        page: next,
+        para: para || this.currentJuz() || undefined
       }
     });
   }
 
-  goPara(number: number, leaf = 1): void {
-    if (number < 1 || number > 30) {
+  goVisual(index: number): void {
+    const packed = this.pages();
+    if (index < 0 || index >= packed.length) {
       return;
     }
-    void this.router.navigate(['/read'], { queryParams: { para: number, leaf } });
-    this.paraDrawer.set(false);
+    this.leaf.set(index);
+    const first = this.leafAyahs()[0];
+    if (!first) {
+      return;
+    }
+    this.currentSurah.set(this.ayahSurah(first));
+    this.currentAyah.set(first.n);
+    const madinah = first.page || this.pageNumber();
+    this.pageNumber.set(madinah);
+    this.store.mark({
+      page: madinah,
+      surah: this.ayahSurah(first),
+      ayah: first.n
+    });
+    this.syncPageView();
+    const current = Number(this.route.snapshot.queryParamMap.get('page') || 0);
+    if (current === madinah) {
+      return;
+    }
+    void this.router.navigate(['/read'], {
+      queryParams: {
+        page: madinah,
+        para: this.currentJuz() || undefined
+      }
+    });
   }
 
   onSwipeStart(event: TouchEvent): void {
@@ -316,65 +473,40 @@ export class MushafComponent implements OnDestroy {
     if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy)) {
       return;
     }
-    this.goLeaf(this.leaf() + (dx < 0 ? 1 : -1));
-  }
-
-  goLeaf(index: number): void {
-    const pages = this.pages();
-    const para = this.detail()?.num ?? 1;
-    if (index < 0) {
-      this.goPara(para - 1, -1);
-      return;
-    }
-    if (index >= pages.length) {
-      this.goPara(para + 1, 1);
-      return;
-    }
-    void this.router.navigate(['/read'], {
-      queryParams: { para, leaf: index + 1 }
-    });
+    this.goVisual(this.leaf() + (dx < 0 ? 1 : -1));
   }
 
   select(ayah: ReaderAyah): void {
-    const para = this.detail();
-    if (!para) {
-      return;
-    }
     this.currentSurah.set(this.ayahSurah(ayah));
     this.currentAyah.set(ayah.n);
-    this.store.mark({ page: this.leaf() + 1, surah: this.ayahSurah(ayah), ayah: ayah.n });
+    this.store.mark({
+      page: this.pageNumber(),
+      surah: this.ayahSurah(ayah),
+      ayah: ayah.n
+    });
   }
 
   bookmark(ayah: ReaderAyah): void {
-    const para = this.detail();
-    if (!para) {
-      return;
-    }
     this.store.toggleBookmark({
       surah: this.ayahSurah(ayah),
       ayah: ayah.n,
-      page: this.leaf() + 1,
-      title: `${ayah.surahEn || para.en} ${ayah.n}`
+      page: this.pageNumber(),
+      title: `${ayah.surahEn || this.headerSurah().en} ${ayah.n}`
     });
   }
 
   play(ayah: ReaderAyah, chain = false): void {
-    const para = this.detail();
-    if (!para) {
-      return;
-    }
     this.select(ayah);
     if (!chain) {
       this.pageQueue = [];
       this.queueIndex = 0;
-      this.showLeafFor(this.ayahSurah(ayah), ayah.n);
     }
     this.playAyahAudio(ayah, chain);
   }
 
   playPage(): void {
     this.keepPlaying = true;
-    this.startPageQueue(this.pageAyahs());
+    this.startPageQueue(this.leafAyahs());
   }
 
   playFromHere(): void {
@@ -382,7 +514,7 @@ export class MushafComponent implements OnDestroy {
     if (!ayah) {
       return;
     }
-    const onPage = this.pageAyahs();
+    const onPage = this.leafAyahs();
     const index = onPage.findIndex((item) =>
       item.n === ayah.n && this.ayahSurah(item) === this.ayahSurah(ayah)
     );
@@ -407,14 +539,9 @@ export class MushafComponent implements OnDestroy {
     if (!this.keepPlaying) {
       return;
     }
-    const pages = this.pages();
-    const para = this.detail()?.num ?? 1;
-    if (this.leaf() + 1 < pages.length) {
-      this.goLeaf(this.leaf() + 1);
-      return;
-    }
-    if (para < 30) {
-      this.goPara(para + 1, 1);
+    if (this.leaf() + 1 < this.pages().length) {
+      this.goVisual(this.leaf() + 1);
+      window.setTimeout(() => this.startPageQueue(this.leafAyahs()), 40);
       return;
     }
     this.keepPlaying = false;
@@ -431,15 +558,16 @@ export class MushafComponent implements OnDestroy {
     this.haltWord.set(-1);
     this.teacherNote.set('');
     this.stop();
-    this.showLeafFor(this.ayahSurah(ayah), ayah.n);
     this.scrollAyah(this.ayahSurah(ayah), ayah.n);
     this.api.verse(this.ayahSurah(ayah), ayah.n).subscribe((view) => this.listen(view));
   }
 
   currentReaderAyah(): ReaderAyah | undefined {
-    return this.detail()?.ayahs.find((item) =>
+    return this.leafAyahs().find((item) =>
       item.n === this.currentAyah() && this.ayahSurah(item) === this.currentSurah()
-    );
+    ) ?? this.pageAyahs().find((item) =>
+      item.n === this.currentAyah() && this.ayahSurah(item) === this.currentSurah()
+    ) ?? this.leafAyahs()[0] ?? this.pageAyahs()[0];
   }
 
   currentAyahView(): ReaderAyah | undefined {
@@ -475,7 +603,7 @@ export class MushafComponent implements OnDestroy {
         this.scrollAyah(this.ayahSurah(ayah), ayah.n, halt.wordIndex);
       },
       onPass: () => {
-        const next = nextAyah(this.detail()?.ayahs ?? [], ayah);
+        const next = nextAyah(this.allAyahs(), ayah);
         if (next) {
           this.select(next);
           this.showLeafFor(this.ayahSurah(next), next.n);
@@ -483,7 +611,7 @@ export class MushafComponent implements OnDestroy {
           this.teacherNote.set('شاباش۔ اگلی آیت پڑھو۔');
           window.setTimeout(() => this.startTeacher(), 1600);
         } else {
-          this.teacherNote.set('شاباش۔ یہ پارہ پورا ہو گیا۔');
+          this.teacherNote.set('شاباش۔ مصحف پورا ہو گیا۔');
         }
       },
       onProgress: () => {
@@ -493,40 +621,103 @@ export class MushafComponent implements OnDestroy {
   }
 
   private packToWidth(force = false): void {
-    const detail = this.detail();
+    const ayahs = this.allAyahs();
     const well = this.well()?.nativeElement;
-    if (!detail || !well) {
+    if (!ayahs.length || !well) {
       return;
     }
     const box = getComputedStyle(well);
     const padX = parseFloat(box.paddingLeft) + parseFloat(box.paddingRight);
-    const padY = parseFloat(box.paddingTop) + parseFloat(box.paddingBottom);
-    const width = Math.max(80, Math.floor(well.clientWidth - padX - 4));
-    const height = Math.max(40, Math.floor(well.clientHeight - padY));
-    if (width < 80 || height < 40) {
+    const width = Math.max(80, Math.floor(well.clientWidth - padX - 8));
+    if (width < 80) {
       return;
     }
     const host = well.closest('app-mushaf') as HTMLElement | null;
     const vars = getComputedStyle(host ?? well);
     const size = vars.getPropertyValue('--mushaf-size').trim() || '44px';
-    const lineHeight = parseFloat(vars.getPropertyValue('--mushaf-line-h')) || LINE_HEIGHT;
     const font = `${size} "Al Majeed Quranic"`;
-    const linesPerPage = Math.max(10, Math.floor(height / lineHeight));
-    const fontReady = document.fonts?.status === 'loaded' ? 1 : 0;
-    const key = `${detail.num}:${width}:${linesPerPage}:${detail.ayahs.length}:${size}:${fontReady}:pack13`;
+    const fontReady = document.fonts?.check?.(font) ? 1 : 0;
+    const key = `full:${width}:${LINES_PER_PAGE}:${ayahs.length}:${size}:${fontReady}:pack-juz`;
     if (!force && key === this.lastPack && this.pages().length) {
       return;
     }
     this.lastPack = key;
-    const ayah = this.currentAyah();
-    const surah = this.currentSurah();
-    this.pages.set(buildPages(detail.ayahs, width, linesPerPage, font));
-    if (this.pendingLastLeaf) {
+    this.pages.set(buildPages(ayahs, width, LINES_PER_PAGE, font));
+    if (this.leaf() >= this.pages().length) {
       this.leaf.set(Math.max(0, this.pages().length - 1));
-      this.pendingLastLeaf = false;
-    } else {
-      this.showLeafFor(surah, ayah);
     }
+  }
+
+  private ensureCorpus(done: () => void): void {
+    if (this.allAyahs().length) {
+      done();
+      return;
+    }
+    this.loading.set(true);
+    this.api.corpus().subscribe({
+      next: (ayahs) => {
+        this.allAyahs.set(ayahs);
+        this.syncPageView();
+        done();
+      },
+      error: () => {
+        this.loading.set(false);
+        this.pageView.set(null);
+        this.error.set('Cannot reach the Spring Boot API on port 8080.');
+      }
+    });
+  }
+
+  private syncPageView(): void {
+    const ayahs = this.allAyahs();
+    if (!ayahs.length) {
+      this.pageView.set(null);
+      return;
+    }
+    this.pageView.set({
+      page: this.pageNumber(),
+      juz: this.currentJuz(),
+      pageCount: MADINAH_PAGES,
+      ayahs
+    });
+  }
+
+  private leafHasMadinah(page: number): boolean {
+    return this.currentLines().some((line) =>
+      line.tokens.some((token) =>
+        (token.kind === 'word' || token.kind === 'close') && (token.ayah.page || 0) === page
+      )
+    );
+  }
+
+  private showLeafForMadinah(page: number, juz = 0): void {
+    const index = leafIndexForPage(this.pages(), page, juz);
+    this.leaf.set(index < 0 ? 0 : index);
+  }
+
+  private showLeafForJuz(juz: number): void {
+    const index = leafIndexForJuz(this.pages(), juz);
+    this.leaf.set(index < 0 ? 0 : index);
+  }
+
+  private restoreLeafFromRoute(): void {
+    const para = Number(this.route.snapshot.queryParamMap.get('para') || 0);
+    const page = Number(this.route.snapshot.queryParamMap.get('page') || 0);
+    const surah = Number(this.route.snapshot.queryParamMap.get('surah') || 0);
+    const ayah = Number(this.route.snapshot.queryParamMap.get('ayah') || 0);
+    if (ayah && (surah || this.currentSurah())) {
+      this.showLeafFor(surah || this.currentSurah(), ayah);
+      return;
+    }
+    if (para && !page) {
+      this.showLeafForJuz(para);
+      return;
+    }
+    if (page) {
+      this.showLeafForMadinah(page, para);
+      return;
+    }
+    this.showLeafFor(this.currentSurah(), this.currentAyah());
   }
 
   private playAyahAudio(ayah: ReaderAyah, chain: boolean): void {
@@ -534,6 +725,7 @@ export class MushafComponent implements OnDestroy {
     this.stopAudioOnly();
     this.chaining.set(chain);
     this.select(ayah);
+    this.showLeafFor(this.ayahSurah(ayah), ayah.n);
     this.api.audio(this.ayahSurah(ayah), ayah.n, this.reciter()).subscribe({
       next: (url) => {
         if (gen !== this.playGen) {
@@ -543,7 +735,7 @@ export class MushafComponent implements OnDestroy {
         this.audio = audio;
         this.playing.set(true);
         this.activeWord.set(0);
-        const words = ayah.ar.trim().split(/\s+/).filter(Boolean);
+        const words = normalizeMushaf(ayah.ar).split(/\s+/).filter(Boolean);
         this.scrollAyah(this.ayahSurah(ayah), ayah.n, 0);
         audio.ontimeupdate = () => {
           if (gen !== this.playGen || !audio.duration || !words.length) {
@@ -644,6 +836,22 @@ function measure(text: string, font = FONT): number {
   return measureCtx.measureText(text).width;
 }
 
+function clampPage(page: number): number {
+  if (!Number.isFinite(page) || page < 1) {
+    return 1;
+  }
+  return Math.min(MADINAH_PAGES, Math.floor(page));
+}
+
+function normalizeMushaf(text: string): string {
+  return text
+    .replace(/[\u200B\uFEFF\u200E\u200F\u202A-\u202E\u2060\u2066-\u2069]/g, '')
+    .replace(/\u2002/g, ' ')
+    .replace(/([\u0615\u06D6-\u06DC\u06DE\uE000-\uF8FF])(?=[\u0621-\u064A\u0671\u067E\u0686\u0688\u0691\u0698\u06A9\u06AF\u06BA\u06BE\u06C1\u06CC\u06D2])/g, '$1 ')
+    .replace(/ +/g, ' ')
+    .trim();
+}
+
 function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
   const lines: Line[] = [];
   let tokens: Token[] = [];
@@ -672,11 +880,28 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
     if (ayah.surahStarts) {
       flush(true);
       lines.push({ tokens: [{ kind: 'title', text: ayah.surahAr || '' }], short: true, extra: 0 });
-      if ((ayah.surah ?? 0) !== 1 && (ayah.surah ?? 0) !== 9) {
+      const surah = ayah.surah ?? 0;
+      if (surah === 1) {
+        const words = normalizeMushaf(ayah.ar).split(/\s+/).filter(Boolean);
+        lines.push({
+          tokens: [{
+            kind: 'close',
+            ayah,
+            index: Math.max(0, words.length - 1),
+            text: words.join(' '),
+            letters: ayah.words?.[0]?.letters ?? [],
+            ruku: false
+          }],
+          short: true,
+          extra: 0
+        });
+        continue;
+      }
+      if (surah !== 9) {
         lines.push({ tokens: [{ kind: 'basmala' }], short: true, extra: 0 });
       }
     }
-    const words = ayah.ar.trim().split(/\s+/).filter(Boolean);
+    const words = normalizeMushaf(ayah.ar).split(/\s+/).filter(Boolean);
     if (!words.length) {
       add({ kind: 'close', ayah, index: 0, text: '', letters: [], ruku: !!ayah.rukuEnds }, MARK_SIZE);
       continue;
@@ -697,20 +922,64 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
   return lines;
 }
 
-function buildPages(ayahs: ReaderAyah[], maxWidth: number, linesPerPage: number, font = FONT): Line[][] {
-  const packed = packLines(ayahs, Math.max(120, maxWidth), font);
-  const pages: Line[][] = [];
-  let page: Line[] = [];
-  for (const line of packed) {
-    const newSurah = line.tokens[0]?.kind === 'title' && page.length > 0;
-    if (page.length >= linesPerPage || newSurah) {
-      pages.push(page);
-      page = [];
-    }
-    page.push(line);
+function rukuClose(line: Line | undefined): Extract<Token, { kind: 'close' }> | undefined {
+  return line?.tokens.find((token): token is Extract<Token, { kind: 'close' }> =>
+    token.kind === 'close' && token.ruku
+  );
+}
+
+function isRukuLeftover(line: Line, index: number, lines: Line[]): boolean {
+  if (!line.short || index <= 0) {
+    return false;
   }
-  if (page.length) {
-    pages.push(page);
+  const close = rukuClose(line);
+  if (!close) {
+    return false;
+  }
+  const words = line.tokens.filter((token) => token.kind === 'word' || token.kind === 'close');
+  if (words.length > 1) {
+    return false;
+  }
+  const prev = lines[index - 1];
+  return !!prev?.tokens.some((token) =>
+    (token.kind === 'word' || token.kind === 'close')
+    && token.ayah.n === close.ayah.n
+    && (token.ayah.surah || 0) === (close.ayah.surah || 0)
+  );
+}
+
+function ayahJuz(ayah: ReaderAyah): number {
+  return ayah.juz && ayah.juz > 0 ? ayah.juz : 1;
+}
+
+function leafJuz(page: Line[] | undefined): number {
+  if (!page) {
+    return 0;
+  }
+  for (const line of page) {
+    for (const token of line.tokens) {
+      if (token.kind === 'word' || token.kind === 'close') {
+        return ayahJuz(token.ayah);
+      }
+    }
+  }
+  return 0;
+}
+
+function buildPages(ayahs: ReaderAyah[], maxWidth: number, linesPerPage: number, font = FONT): Line[][] {
+  const pages: Line[][] = [];
+  let i = 0;
+  while (i < ayahs.length) {
+    const juz = ayahJuz(ayahs[i]);
+    let end = i + 1;
+    while (end < ayahs.length && ayahJuz(ayahs[end]) === juz) {
+      end += 1;
+    }
+    const packed = packLines(ayahs.slice(i, end), Math.max(120, maxWidth), font);
+    for (let k = 0; k < packed.length; k += linesPerPage) {
+      pages.push(packed.slice(k, k + linesPerPage));
+    }
+    i = end;
   }
   return pages.length ? pages : [[]];
 }
@@ -723,6 +992,22 @@ function leafIndexFor(pages: Line[][], surah: number, ayah: number): number {
       && (token.ayah.surah || surah) === surah
     ))
   );
+  return found < 0 ? 0 : found;
+}
+
+function leafIndexForPage(pages: Line[][], madinahPage: number, juz = 0): number {
+  const found = pages.findIndex((page) =>
+    page.some((line) => line.tokens.some((token) =>
+      (token.kind === 'word' || token.kind === 'close')
+      && (token.ayah.page || 0) === madinahPage
+      && (!juz || ayahJuz(token.ayah) === juz)
+    ))
+  );
+  return found < 0 ? 0 : found;
+}
+
+function leafIndexForJuz(pages: Line[][], juz: number): number {
+  const found = pages.findIndex((page) => leafJuz(page) === juz);
   return found < 0 ? 0 : found;
 }
 
