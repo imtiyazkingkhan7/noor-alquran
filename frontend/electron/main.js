@@ -4,7 +4,12 @@ const path = require('path');
 
 const DEV_URL = 'http://127.0.0.1:4200/';
 const JAR_URL = 'http://127.0.0.1:8080/';
+const LIVE_URL = 'https://noor-alquran.onrender.com/';
 const MUSHAF_PATH = 'read?para=1';
+
+function mushafUrl(base) {
+  return base + MUSHAF_PATH;
+}
 
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.nur.alquran');
@@ -35,12 +40,22 @@ function reachable(base) {
 
 async function appUrl() {
   if (await reachable(DEV_URL)) {
-    return DEV_URL + MUSHAF_PATH;
+    return mushafUrl(DEV_URL);
   }
   if (await reachable(JAR_URL)) {
-    return JAR_URL + MUSHAF_PATH;
+    return mushafUrl(JAR_URL);
   }
-  return DEV_URL + MUSHAF_PATH;
+  return mushafUrl(LIVE_URL);
+}
+
+function nextFallback(failedUrl) {
+  if (failedUrl.startsWith(DEV_URL)) {
+    return mushafUrl(JAR_URL);
+  }
+  if (failedUrl.startsWith(JAR_URL)) {
+    return mushafUrl(LIVE_URL);
+  }
+  return null;
 }
 
 async function createWindow() {
@@ -64,13 +79,16 @@ async function createWindow() {
   });
 
   const start = await appUrl();
-  let fallbackTried = false;
+  const tried = new Set([start]);
   win.webContents.on('did-fail-load', (_event, _code, _desc, url, isMainFrame) => {
-    if (!isMainFrame || fallbackTried) {
+    if (!isMainFrame) {
       return;
     }
-    fallbackTried = true;
-    const fallback = start.startsWith(DEV_URL) ? JAR_URL + MUSHAF_PATH : DEV_URL + MUSHAF_PATH;
+    const fallback = nextFallback(url || start);
+    if (!fallback || tried.has(fallback)) {
+      return;
+    }
+    tried.add(fallback);
     win.loadURL(fallback);
   });
 
