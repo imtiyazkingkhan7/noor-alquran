@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, forkJoin, map, shareReplay } from 'rxjs';
 import {
   AssessResponse,
   Health,
@@ -8,6 +8,7 @@ import {
   JuzView,
   LessonView,
   PageView,
+  ReaderAyah,
   ReaderPara,
   ReaderSurah,
   ReciterView,
@@ -18,6 +19,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class QuranApi {
   private readonly http = inject(HttpClient);
+  private mushafCorpus$?: Observable<ReaderAyah[]>;
 
   health(): Observable<Health> {
     return this.http.get<Health>('/api/health');
@@ -48,7 +50,7 @@ export class QuranApi {
   }
 
   page(page: number): Observable<PageView> {
-    return this.http.get<PageView>(`/api/pages/${page}`);
+    return this.http.get<PageView>(`/api/page/${page}`);
   }
 
   juz(): Observable<JuzView[]> {
@@ -57,6 +59,20 @@ export class QuranApi {
 
   para(number: number): Observable<ReaderPara> {
     return this.http.get<ReaderPara>(`/api/juz/${number}`);
+  }
+
+  corpus(): Observable<ReaderAyah[]> {
+    if (!this.mushafCorpus$) {
+      this.mushafCorpus$ = forkJoin(
+        Array.from({ length: 30 }, (_, index) => this.para(index + 1))
+      ).pipe(
+        map((paras) => paras.flatMap((para) =>
+          (para.ayahs ?? []).map((ayah) => ({ ...ayah, juz: para.num }))
+        )),
+        shareReplay(1)
+      );
+    }
+    return this.mushafCorpus$;
   }
 
   search(q: string): Observable<SearchHit[]> {

@@ -36,7 +36,7 @@ public class QuranController {
         );
     }
 
-    @GetMapping("/pages/{page}")
+    @GetMapping({"/pages/{page}", "/page/{page}"})
     public PageView page(@PathVariable int page) {
         return corpusService.getPage(page);
     }

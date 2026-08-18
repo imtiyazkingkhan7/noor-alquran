@@ -21,6 +21,7 @@ public record AppProperties(
     public record Corpus(
             @DefaultValue("https://api.alquran.cloud/v1/quran/quran-uthmani") String uthmaniUrl,
             @DefaultValue("https://api.alquran.cloud/v1/quran/en.sahih") String translationUrl,
+            @DefaultValue("https://api.alquran.cloud/v1/page/{page}/quran-uthmani") String pageUrl,
             @DefaultValue("data/quran-cache.json") String cacheFile,
             @DefaultValue("false") boolean skipRemote
     ) {

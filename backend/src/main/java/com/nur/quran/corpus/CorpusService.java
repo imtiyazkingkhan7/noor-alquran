@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class CorpusService {
 
     private static final Logger log = LoggerFactory.getLogger(CorpusService.class);
+    public static final int MADINAH_PAGES = 604;
     private static final String[] PARA_EN = {
             "Alif Lam Meem", "Sayaqool", "Tilkar Rusul", "Lan Tanaalu", "Wal Muhsanat",
             "La Yuhibbullah", "Wa Iza Samiu", "Wa Lau Annana", "Qalal Malao", "Wa Alamoo",
@@ -136,35 +137,31 @@ public class CorpusService {
     }
 
     public int pageCount() {
-        return mushaf.get().surahs.values().stream()
+        if (isFullCorpus()) {
+            return MADINAH_PAGES;
+        }
+        return Math.max(1, mushaf.get().surahs.values().stream()
                 .flatMap(surah -> surah.ayahs.stream())
                 .mapToInt(ayah -> ayah.page)
                 .max()
-                .orElse(1);
+                .orElse(1));
     }
 
-    public QuranDtos.PageView getPage(int page) {
-        if (page < 1 || page > pageCount()) {
+    public int clampPage(int page) {
+        return Math.max(1, Math.min(MADINAH_PAGES, page));
+    }
+
+    public QuranDtos.PageView getPage(int requested) {
+        int page = clampPage(requested);
+        int[] juz = {1};
+        List<QuranDtos.JuzAyah> ayahs = collectAyahs(page, juz);
+        if (ayahs.isEmpty() && !properties.corpus().skipRemote()) {
+            ayahs = fetchRemotePage(page, juz);
+        }
+        if (ayahs.isEmpty()) {
             throw new IllegalArgumentException("Page not found");
         }
-        List<QuranDtos.PageItem> items = new ArrayList<>();
-        int juz = 1;
-        for (Surah surah : mushaf.get().surahs.values()) {
-            for (Ayah ayah : surah.ayahs) {
-                if (ayah.page == page) {
-                    juz = Math.max(juz, ayah.juz);
-                    items.add(new QuranDtos.PageItem(
-                            toSummary(surah),
-                            toAyahView(surah, ayah, rukuEnds(surah, ayah)),
-                            ayah.numberInSurah == 1
-                    ));
-                }
-            }
-        }
-        if (items.isEmpty()) {
-            throw new IllegalArgumentException("Page not found");
-        }
-        return new QuranDtos.PageView(page, juz, pageCount(), items);
+        return new QuranDtos.PageView(page, Math.max(juz[0], 1), pageCount(), ayahs);
     }
 
     public List<QuranDtos.JuzView> listJuz() {
@@ -202,45 +199,125 @@ public class CorpusService {
         if (number < 1 || number > 30) {
             throw new IllegalArgumentException("Juz not found");
         }
-        List<QuranDtos.JuzAyah> ayahs = new ArrayList<>();
-        for (Surah surah : mushaf.get().surahs.values()) {
-            ReaderSurah overlay = readerOverlay.get(surah.number);
-            String surahEn = overlay != null ? overlay.en() : surah.englishName;
-            String surahAr = overlay != null ? overlay.ar() : surah.name;
-            Map<Integer, ReaderAyah> overlayByN = new HashMap<>();
-            if (overlay != null && overlay.ayahs() != null) {
-                for (ReaderAyah row : overlay.ayahs()) {
-                    overlayByN.put(row.n(), row);
-                }
-            }
-            for (int i = 0; i < surah.ayahs.size(); i++) {
-                Ayah ayah = surah.ayahs.get(i);
-                if (ayah.juz != number) {
-                    continue;
-                }
-                ReaderAyah overlayRow = overlayByN.get(ayah.numberInSurah);
-                String ar = ayah.text;
-                String en = overlayRow != null ? overlayRow.en() : ayah.translation;
-                if (!(surah.number == 1 && ayah.numberInSurah == 1)) {
-                    ar = TajweedEngine.stripLeadingBasmala(ar);
-                }
-                ayahs.add(new QuranDtos.JuzAyah(
-                        surah.number,
-                        surahEn,
-                        surahAr,
-                        ayah.numberInSurah,
-                        ar,
-                        en,
-                        rukuEndsAt(surah.ayahs, i),
-                        ayah.numberInSurah == 1,
-                        tajweedEngine.tag(ar)
-                ));
-            }
-        }
+        List<QuranDtos.JuzAyah> ayahs = collectAyahsByJuz(number);
         if (ayahs.isEmpty()) {
             throw new IllegalArgumentException("Juz not found");
         }
         return new QuranDtos.JuzReader(number, paraEnglish(number), paraArabic(number), ayahs);
+    }
+
+    private List<QuranDtos.JuzAyah> collectAyahs(int page, int[] juzOut) {
+        List<QuranDtos.JuzAyah> ayahs = new ArrayList<>();
+        for (Surah surah : mushaf.get().surahs.values()) {
+            OverlayNames names = overlayNames(surah);
+            for (int i = 0; i < surah.ayahs.size(); i++) {
+                Ayah ayah = surah.ayahs.get(i);
+                if (ayah.page != page) {
+                    continue;
+                }
+                if (juzOut != null) {
+                    juzOut[0] = Math.max(juzOut[0], ayah.juz);
+                }
+                ayahs.add(toJuzAyah(surah, names, ayah, i));
+            }
+        }
+        return ayahs;
+    }
+
+    private List<QuranDtos.JuzAyah> collectAyahsByJuz(int juz) {
+        List<QuranDtos.JuzAyah> ayahs = new ArrayList<>();
+        for (Surah surah : mushaf.get().surahs.values()) {
+            OverlayNames names = overlayNames(surah);
+            for (int i = 0; i < surah.ayahs.size(); i++) {
+                Ayah ayah = surah.ayahs.get(i);
+                if (ayah.juz != juz) {
+                    continue;
+                }
+                ayahs.add(toJuzAyah(surah, names, ayah, i));
+            }
+        }
+        return ayahs;
+    }
+
+    private OverlayNames overlayNames(Surah surah) {
+        ReaderSurah overlay = readerOverlay.get(surah.number);
+        String surahEn = overlay != null ? overlay.en() : surah.englishName;
+        String surahAr = overlay != null ? overlay.ar() : surah.name;
+        Map<Integer, ReaderAyah> overlayByN = new HashMap<>();
+        if (overlay != null && overlay.ayahs() != null) {
+            for (ReaderAyah row : overlay.ayahs()) {
+                overlayByN.put(row.n(), row);
+            }
+        }
+        return new OverlayNames(surahEn, surahAr, overlayByN);
+    }
+
+    private QuranDtos.JuzAyah toJuzAyah(Surah surah, OverlayNames names, Ayah ayah, int index) {
+        ReaderAyah overlayRow = names.overlayByN.get(ayah.numberInSurah);
+        String ar = ayah.text;
+        String en = overlayRow != null ? overlayRow.en() : ayah.translation;
+        if (!(surah.number == 1 && ayah.numberInSurah == 1)) {
+            ar = TajweedEngine.stripLeadingBasmala(ar);
+        }
+        return new QuranDtos.JuzAyah(
+                surah.number,
+                names.en,
+                names.ar,
+                ayah.numberInSurah,
+                ar,
+                en,
+                rukuEndsAt(surah.ayahs, index),
+                ayah.numberInSurah == 1,
+                ayah.page,
+                tajweedEngine.tag(ar)
+        );
+    }
+
+    private List<QuranDtos.JuzAyah> fetchRemotePage(int page, int[] juzOut) {
+        try {
+            String url = properties.corpus().pageUrl().replace("{page}", String.valueOf(page));
+            JsonNode data = getJson(url).path("data");
+            JsonNode remoteAyahs = data.path("ayahs");
+            if (!remoteAyahs.isArray() || remoteAyahs.isEmpty()) {
+                return List.of();
+            }
+            List<QuranDtos.JuzAyah> ayahs = new ArrayList<>();
+            for (JsonNode node : remoteAyahs) {
+                int surahNumber = node.path("surah").path("number").asInt();
+                int numberInSurah = node.path("numberInSurah").asInt();
+                Surah surah = mushaf.get().surahs.get(surahNumber);
+                if (surah == null) {
+                    continue;
+                }
+                OverlayNames names = overlayNames(surah);
+                int index = -1;
+                Ayah found = null;
+                for (int i = 0; i < surah.ayahs.size(); i++) {
+                    if (surah.ayahs.get(i).numberInSurah == numberInSurah) {
+                        index = i;
+                        found = surah.ayahs.get(i);
+                        break;
+                    }
+                }
+                if (found == null) {
+                    continue;
+                }
+                if (juzOut != null) {
+                    juzOut[0] = Math.max(juzOut[0], found.juz);
+                }
+                ayahs.add(toJuzAyah(surah, names, found, index));
+            }
+            if (!ayahs.isEmpty()) {
+                log.info("Filled Madinah page {} from alquran.cloud page API", page);
+            }
+            return ayahs;
+        } catch (Exception ex) {
+            log.warn("Remote page {} unavailable: {}", page, ex.getMessage());
+            return List.of();
+        }
+    }
+
+    private record OverlayNames(String en, String ar, Map<Integer, ReaderAyah> overlayByN) {
     }
 
     private String paraEnglish(int number) {

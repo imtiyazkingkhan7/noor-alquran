@@ -13,7 +13,7 @@
         <button
           type="button"
           class="surah-item"
-          [class.active]="detail()?.num === para.number"
+          [class.active]="currentJuz() === para.number"
           (click)="goPara(para.number)"
         >
           <span class="surah-num">{{ para.number }}</span>
@@ -33,22 +33,22 @@
 
     @if (loading()) {
       <p id="placeholder">Loading Mushaf…</p>
-    } @else if (detail()) {
+    } @else if (pageView()) {
       <div class="page-row">
-        <button type="button" class="page-side" (click)="goLeaf(leaf() - 1)" [disabled]="detail()!.num === 1 && leaf() === 0">
+        <button type="button" class="page-side" (click)="goVisual(leaf() - 1)" [disabled]="atFirstLeaf()">
           <span>Prev</span>
-          <strong>{{ leaf() === 0 ? 'Para ' + ((detail()!.num) - 1) : leaf() }}</strong>
+          <strong>{{ atFirstLeaf() ? '—' : leaf() }}</strong>
         </button>
         <div class="page-stage" (touchstart)="onSwipeStart($event)" (touchend)="onSwipeEnd($event)">
-          <header class="page-kicker">
-            <span class="surah-head" dir="rtl">{{ headerSurah().ar }}</span>
-          </header>
           <div class="sheet-wrap">
             <article class="sheet" dir="rtl">
+            @if (headerSurah().ar) {
+              <span class="surah-head" dir="rtl">{{ headerSurah().ar }}</span>
+            }
             <div class="ruku-gutter" aria-hidden="true">
               @for (line of currentLines(); track $index) {
                 <div class="ruku-slot">
-                  @if (lineHasRuku(line)) {
+                  @if (lineHasRuku(line, $index)) {
                     <span title="Ruku">ع</span>
                   }
                 </div>
@@ -56,8 +56,8 @@
             </div>
           <div class="page">
             <div #well class="well">
-              @if (!detail()!.ayahs.length) {
-                <p class="empty">Verse text for this para isn't loaded yet.</p>
+              @if (!pageView()!.ayahs.length) {
+                <p class="empty">Verse text for this page isn't loaded yet.</p>
               } @else {
                 @for (line of currentLines(); track $index) {
                   <p
@@ -65,8 +65,8 @@
                     [class.short]="line.short"
                     [class.title]="lineKind(line) === 'title'"
                     [class.basmala-line]="lineKind(line) === 'basmala'"
-                    [class.para-open]="isParaOpenLine($index)"
                     [class.filled]="lineFilled(line)"
+                    [class.para-open]="isParaOpenLine($index)"
                   >@for (token of line.tokens; track $index) {@if (token.kind === 'word') {<span
                       class="word"
                       [id]="'w-' + ayahSurah(token.ayah) + '-' + token.ayah.n + '-' + token.index"
@@ -94,9 +94,9 @@
           </article>
           </div>
         </div>
-        <button type="button" class="page-side" (click)="goLeaf(leaf() + 1)" [disabled]="detail()!.num === 30 && leaf() === pages().length - 1">
+        <button type="button" class="page-side" (click)="goVisual(leaf() + 1)" [disabled]="atLastLeaf()">
           <span>Next</span>
-          <strong>{{ leaf() + 1 === pages().length ? 'Para ' + ((detail()!.num) + 1) : leaf() + 2 }}</strong>
+          <strong>{{ atLastLeaf() ? '—' : leaf() + 2 }}</strong>
         </button>
       </div>
     }
@@ -111,14 +111,14 @@
         </aside>
       }
       <div class="phone-bar">
-        <button type="button" (click)="goLeaf(leaf() - 1)" [disabled]="detail()?.num === 1 && leaf() === 0" aria-label="Previous page">‹</button>
+        <button type="button" (click)="goVisual(leaf() - 1)" [disabled]="atFirstLeaf()" aria-label="Previous page">‹</button>
         <button type="button" (click)="playing() && chaining() ? stop() : playPage()">
           {{ playing() && chaining() ? 'Stop' : 'Play' }}
         </button>
         <button type="button" class="recite" [class.live]="teacher.listening()" (click)="startTeacher()">
           {{ teacher.listening() ? 'Listening…' : 'Recite' }}
         </button>
-        <button type="button" (click)="goLeaf(leaf() + 1)" [disabled]="detail()?.num === 30 && leaf() === pages().length - 1" aria-label="Next page">›</button>
+        <button type="button" (click)="goVisual(leaf() + 1)" [disabled]="atLastLeaf()" aria-label="Next page">›</button>
       </div>
     </div>
   </div>
@@ -133,7 +133,7 @@
           }
         </select>
       </label>
-      <button type="button" class="primary" [disabled]="!detail()?.ayahs?.length" (click)="playing() && chaining() ? stop() : playPage()">
+      <button type="button" class="primary" [disabled]="!pageView()?.ayahs?.length" (click)="playing() && chaining() ? stop() : playPage()">
         {{ playing() && chaining() ? 'Stop recitation' : 'Play page' }}
       </button>
       @if (currentAyahView(); as ayah) {
