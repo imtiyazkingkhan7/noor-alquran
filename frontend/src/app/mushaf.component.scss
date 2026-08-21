@@ -468,8 +468,10 @@
   unicode-bidi: isolate;
   text-align: start;
   text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: subpixel-antialiased;
-  -moz-osx-font-smoothing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  backface-visibility: hidden;
 }
 
 .mushaf-line.filled {
