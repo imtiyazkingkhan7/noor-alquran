@@ -1,0 +1,15 @@
+{
+  "name": "Noor — Quran teacher",
+  "install": "chmod +x backend/mvnw && (cd backend && ./mvnw -B -q -DskipTests package) && (cd frontend && npm ci)",
+  "terminals": [
+    {
+      "name": "api",
+      "command": "cd backend && ./mvnw -q spring-boot:run"
+    },
+    {
+      "name": "web",
+      "command": "cd frontend && npm start -- --host 0.0.0.0 --port 4200"
+    }
+  ],
+  "ports": [8080, 4200]
+}
