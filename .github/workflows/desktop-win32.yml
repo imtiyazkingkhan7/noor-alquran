@@ -8,7 +8,7 @@ on:
       - 'frontend/electron-builder.yml'
       - 'frontend/package.json'
       - 'frontend/package-lock.json'
-      - 'frontend/scripts/write-win-icon.mjs'
+      - 'frontend/scripts/**'
       - '.github/workflows/desktop-win32.yml'
   pull_request:
     paths:
@@ -16,7 +16,7 @@ on:
       - 'frontend/electron-builder.yml'
       - 'frontend/package.json'
       - 'frontend/package-lock.json'
-      - 'frontend/scripts/write-win-icon.mjs'
+      - 'frontend/scripts/**'
       - '.github/workflows/desktop-win32.yml'
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build 32-bit Windows app
-        run: npm run dist:win32
+        run: npm run dist:win32:installer
       - uses: actions/upload-artifact@v4
         with:
           name: noor-windows-ia32

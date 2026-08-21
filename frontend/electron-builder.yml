@@ -13,7 +13,7 @@ files:
       - electron/preload.js
       - public/noor-logo.png
 asar: true
-npmRebuild: false
+beforeBuild: scripts/skip-electron-node-modules.cjs
 compression: normal
 win:
   icon: electron/build/icon.ico
@@ -24,7 +24,11 @@ win:
     - target: portable
       arch:
         - ia32
+    - target: zip
+      arch:
+        - ia32
   requestedExecutionLevel: asInvoker
+  artifactName: NoorAlQuran-${version}-win-${arch}.${ext}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true

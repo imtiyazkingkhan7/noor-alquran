@@ -35,15 +35,18 @@ On any 64-bit machine with Node 18–22:
 ```powershell
 cd frontend
 npm ci
-npm run dist:win32
+npm run dist:win32:installer
 ```
+
+On Linux or macOS, `npm run dist:win32` writes a zip (NSIS needs Windows or Wine). The GitHub Action **Desktop Windows 32-bit** builds the installers.
 
 That writes:
 
 - `frontend/dist-desktop/NoorAlQuran-Setup-0.0.0-win-ia32.exe` — installer (choose the install folder; useful when `C:` is small)
 - `frontend/dist-desktop/NoorAlQuran-0.0.0-win-ia32-portable.exe` — no-install copy
+- `frontend/dist-desktop/NoorAlQuran-0.0.0-win-ia32.zip` — unzip and run `NoorAlQuran.exe`
 
-The app opens the Mushaf. If the Angular dev server or local API is running it uses that; otherwise it loads https://noor-alquran.onrender.com. GitHub Actions workflow **Desktop Windows 32-bit** builds the same installers.
+The app opens the Mushaf. If the Angular dev server or local API is running it uses that; otherwise it loads https://noor-alquran.onrender.com.
 
 32-bit Windows 7/8 are not supported (Electron 43 needs Windows 10 or later).
 
