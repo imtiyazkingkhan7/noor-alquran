@@ -1,0 +1,23 @@
+import { mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const png = readFileSync(join(root, 'public', 'icon-512.png'));
+const header = Buffer.alloc(6);
+header.writeUInt16LE(0, 0);
+header.writeUInt16LE(1, 2);
+header.writeUInt16LE(1, 4);
+const entry = Buffer.alloc(16);
+entry.writeUInt8(0, 0);
+entry.writeUInt8(0, 1);
+entry.writeUInt8(0, 2);
+entry.writeUInt8(0, 3);
+entry.writeUInt16LE(1, 4);
+entry.writeUInt16LE(32, 6);
+entry.writeUInt32LE(png.length, 8);
+entry.writeUInt32LE(22, 12);
+const outDir = join(root, 'electron', 'build');
+mkdirSync(outDir, { recursive: true });
+writeFileSync(join(outDir, 'icon.ico'), Buffer.concat([header, entry, png]));
+console.log('Wrote electron/build/icon.ico');

@@ -1,0 +1,36 @@
+appId: com.nur.alquran
+productName: Noor Al-Quran
+executableName: NoorAlQuran
+electronVersion: 43.4.0
+copyright: Copyright © Noor
+directories:
+  output: dist-desktop
+  buildResources: electron/build
+files:
+  - filter:
+      - package.json
+      - electron/main.js
+      - electron/preload.js
+      - public/noor-logo.png
+asar: true
+npmRebuild: false
+compression: normal
+win:
+  icon: electron/build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - ia32
+    - target: portable
+      arch:
+        - ia32
+  requestedExecutionLevel: asInvoker
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: Noor Al-Quran
+  uninstallDisplayName: Noor Al-Quran
+  artifactName: NoorAlQuran-Setup-${version}-win-ia32.${ext}
+  differentialPackage: false
+portable:
+  artifactName: NoorAlQuran-${version}-win-ia32-portable.${ext}
