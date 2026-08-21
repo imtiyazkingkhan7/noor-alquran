@@ -67,6 +67,14 @@ a { color: inherit; }
   display: none;
 }
 
+.shell.home {
+  --tab-h: 0px;
+}
+
+.shell.home .tabbar {
+  display: none;
+}
+
 .top {
   height: var(--top-h);
   display: flex;

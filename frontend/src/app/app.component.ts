@@ -9,7 +9,7 @@ import { InstallService } from './install.service';
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="shell" [class.immersive]="readerOpen()">
+    <div class="shell" [class.immersive]="readerOpen() || homeOpen()" [class.home]="homeOpen()">
       <header class="top">
         <a routerLink="/" class="brand">
           <img class="mark" src="/noor-logo.png" alt="Noor" />
@@ -66,5 +66,9 @@ export class AppComponent {
 
   readerOpen(): boolean {
     return this.path().split('?')[0] === '/read';
+  }
+
+  homeOpen(): boolean {
+    return this.path().split('?')[0] === '/';
   }
 }
