@@ -459,6 +459,7 @@
   color: var(--ink);
   letter-spacing: 0;
   word-spacing: 0;
+  column-gap: 0.22em;
   border-bottom: 1px solid #2a2118;
   font-weight: normal;
   font-synthesis: none;
@@ -468,12 +469,14 @@
   unicode-bidi: isolate;
   text-align: start;
   text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: subpixel-antialiased;
-  -moz-osx-font-smoothing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  backface-visibility: hidden;
 }
 
 .mushaf-line.filled {
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .mushaf-line > .word,
@@ -507,6 +510,7 @@
   line-height: var(--mushaf-line-h);
   letter-spacing: 0;
   word-spacing: 0;
+  column-gap: 0.14em;
   overflow: visible;
 }
 
