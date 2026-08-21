@@ -1,142 +1,245 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReadingStore } from './reading.store';
-import { InstallService } from './install.service';
 
 @Component({
   selector: 'app-home',
   imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="home">
-      @if (!install.installed()) {
-        <aside class="install-card">
-          <p class="install-title">Install on PC or phone</p>
-          <button type="button" class="btn btn-gold install" (click)="install.install()">
-            Install Noor on this device
-          </button>
-          <p class="install-hint">{{ install.hint() }}</p>
-          <ul class="install-steps">
-            <li><b>PC Chrome</b> — ⋮ menu → Cast, save and share → Install page as app</li>
-            <li><b>Android</b> — Chrome ⋮ menu → Install app</li>
-            <li><b>iPhone</b> — Share → Add to Home Screen</li>
-          </ul>
-        </aside>
-      }
-      <div class="main">
-      <header class="hero">
-        <img class="app-mark" src="/noor-logo.png" alt="القرآن الكريم" />
-        <h1 class="brand-name">Noor</h1>
-        <p class="kicker">Al-Quran</p>
-        @if (install.installed()) {
-          <p class="install-hint">{{ install.hint() }}</p>
-        }
-      </header>
+    <div class="hq">
+      <div class="frame">
+        <div class="bg" aria-hidden="true"></div>
 
-      <nav class="menu">
-        <a class="item first recite" routerLink="/practice">
-          <span class="step">●</span>
-          <span>
-            <b>Recite</b>
-            <small>Teacher stops you on a mistake</small>
-          </span>
-        </a>
-        <a class="item" [routerLink]="['/read']" [queryParams]="{ surah: store.progress().surah, ayah: store.progress().ayah }">
-          <span class="step">۝</span>
-          <span>
-            <b>Mushaf</b>
-            <small>Surah {{ store.progress().surah }} · Ayah {{ store.progress().ayah }}</small>
-          </span>
-        </a>
-        <a class="item" routerLink="/index">
-          <span class="step">30</span>
-          <span>
-            <b>Para Index</b>
-            <small>All 30 parahs</small>
-          </span>
-        </a>
-      </nav>
+        <header class="titlebar">
+          <span class="corner left" aria-hidden="true">✦</span>
+          <h1 class="title">HOLY QURAN</h1>
+          <span class="corner right" aria-hidden="true">⁝⁝</span>
+        </header>
+
+        <nav class="menu">
+          <a class="item" [routerLink]="['/read']"
+             [queryParams]="{ surah: store.progress().surah, ayah: store.progress().ayah }">
+            <span class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 0 4 21.5z"/>
+                <path d="M4 5.5A2.5 2.5 0 0 0 6.5 8H20"/>
+                <path d="M12 8v6l2-1.4L16 14V8"/>
+              </svg>
+            </span>
+            <span class="label">RESUME</span>
+          </a>
+
+          <a class="item" routerLink="/index">
+            <span class="ico green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 3h6"/><path d="M10 3v2.2a4 4 0 0 0 4 0V3"/>
+                <path d="M8 8.5c0-1 .8-1.8 1.8-2h4.4c1 .2 1.8 1 1.8 2 0 2 2 3.2 2 6.5v3a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-3c0-3.3 2-4.5 2-6.5z"/>
+                <path d="M9.5 12.5h5"/>
+              </svg>
+            </span>
+            <span class="label">PARA Index</span>
+          </a>
+
+          <a class="item" routerLink="/surahs">
+            <span class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 3h6"/><path d="M10 3v2.2a4 4 0 0 0 4 0V3"/>
+                <path d="M8 8.5c0-1 .8-1.8 1.8-2h4.4c1 .2 1.8 1 1.8 2 0 2 2 3.2 2 6.5v3a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-3c0-3.3 2-4.5 2-6.5z"/>
+                <path d="M9.5 12.5h5"/>
+              </svg>
+            </span>
+            <span class="label">SURAH Index</span>
+          </a>
+
+          <a class="item" routerLink="/lessons">
+            <span class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 6.5C10.5 5 8 4.5 4 5v13c4-.5 6.5 0 8 1.5"/>
+                <path d="M12 6.5C13.5 5 16 4.5 20 5v13c-4-.5-6.5 0-8 1.5z"/>
+                <path d="M12 6.5v13"/>
+              </svg>
+            </span>
+            <span class="label">Need to Know</span>
+          </a>
+
+          <a class="item" routerLink="/about">
+            <span class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 0 4 21.5z"/>
+                <path d="M4 5.5A2.5 2.5 0 0 0 6.5 8H20"/>
+                <circle cx="12" cy="11" r=".7" fill="currentColor" stroke="none"/>
+                <path d="M12 13.2V16"/>
+              </svg>
+            </span>
+            <span class="label">Info. About QURAN</span>
+          </a>
+        </nav>
+
+        <footer class="controls">
+          <button type="button" class="ctrl" [class.off]="muted()" (click)="toggleMute()"
+                  [attr.aria-label]="muted() ? 'Unmute' : 'Mute'">
+            @if (muted()) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l4 6"/><path d="M21 9l-4 6"/>
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a8.5 8.5 0 0 1 0 12"/>
+              </svg>
+            }
+          </button>
+
+          <button type="button" class="ctrl" (click)="exit()" aria-label="Exit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v9"/><path d="M6.6 6.6a8 8 0 1 0 10.8 0"/>
+            </svg>
+          </button>
+        </footer>
       </div>
     </div>
   `,
   styles: [`
-    .home { padding: 28px 24px 48px; max-width: 560px; margin: 0 auto; }
-    .item.lessons { padding: 12px 18px; }
-    .item.lessons b { font-size: 20px; }
-    @media (max-width: 900px) {
-      .home { padding: 10px 14px 20px; }
-      .install-card { display: none; }
-      .app-mark { width: min(96px, 24vw); margin-bottom: 0; }
-      .brand-name { font-size: 26px; }
-      .hero { margin-bottom: 10px; }
-      .item b { font-size: 18px; }
-      .item { padding: 12px 14px; }
-      .item.recite { border-color: var(--gold); background: linear-gradient(180deg, rgba(201, 162, 75, 0.22), rgba(14, 28, 23, 0.92)); }
-      .menu { gap: 8px; margin-bottom: 14px; }
+    :host { display: block; }
+    .hq {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      background: #050a16;
     }
-    .hero { text-align: center; margin-bottom: 22px; }
-    .app-mark {
-      display: block;
-      width: min(340px, 78vw);
-      height: auto;
-      margin: 0 auto 4px;
-      image-rendering: auto;
-      filter: drop-shadow(0 12px 28px rgba(0,0,0,.35));
+    .frame {
+      position: relative;
+      width: 100%;
+      max-width: 460px;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      isolation: isolate;
     }
-    .brand-name {
-      margin: 0;
-      font-family: var(--display);
-      font-size: clamp(42px, 8vw, 58px);
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-    .install { margin-top: 8px; width: 100%; padding: 12px 16px; font-size: 15px; }
-    .install-card {
-      padding: 22px 24px;
-      border: 1px solid var(--gold); border-radius: 20px;
-      background: rgba(18, 34, 28, 0.92); text-align: start;
-      box-shadow: var(--shadow);
-    }
-    @media (min-width: 901px) {
-      .install-card {
-        position: fixed;
-        left: 16px;
-        top: 84px;
-        width: 380px;
-        z-index: 15;
+    @media (min-width: 480px) {
+      .frame {
+        min-height: min(880px, 96dvh);
+        border-radius: 22px;
+        box-shadow: 0 30px 80px rgba(0,0,0,.6);
+        border: 1px solid rgba(201,162,75,.35);
       }
     }
-    @media (max-width: 900px) {
-      .install-card { margin: 0 0 22px; }
+    .bg {
+      position: absolute; inset: 0; z-index: -1;
+      background-image: url('/holy-quran-bg.png');
+      background-size: cover;
+      background-position: center;
     }
-    .install-title {
-      margin: 0 0 10px; color: var(--gold); font-size: 14px;
-      letter-spacing: .12em; text-transform: uppercase; text-align: start;
+
+    .titlebar {
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      align-items: center;
+      padding: 14px 14px 12px;
     }
-    .install-hint { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
-    .install-steps {
-      margin: 12px 0 0; padding-left: 1.15em; color: var(--ink);
-      font-size: 15px; line-height: 1.55;
+    .title {
+      margin: 0; text-align: center;
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: clamp(22px, 6vw, 30px);
+      letter-spacing: .14em;
+      color: #ffd86b;
+      text-shadow: 0 2px 10px rgba(0,0,0,.65), 0 0 2px rgba(255,216,107,.5);
     }
-    .install-steps li { margin: 4px 0; }
-    .menu { display: grid; gap: 10px; margin-bottom: 22px; }
+    .corner { color: #f4cf7a; opacity: .85; font-size: 16px; text-align: center; }
+    .corner.right { letter-spacing: 2px; }
+
+    .menu {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(12px, 2.4vh, 20px);
+      padding: 8px 22px;
+    }
     .item {
-      display: grid; grid-template-columns: 42px 1fr; gap: 14px; align-items: center;
-      padding: 16px 18px; text-decoration: none; color: inherit;
-      border: 1px solid var(--line); border-radius: 18px;
-      background: linear-gradient(180deg, rgba(24, 48, 40, 0.9), rgba(14, 28, 23, 0.92));
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      text-decoration: none;
+      border-radius: 12px;
+      border: 1px solid rgba(244, 207, 122, .55);
+      background: linear-gradient(180deg, rgba(6, 18, 34, .58), rgba(6, 14, 26, .72));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 6px 18px rgba(0,0,0,.35);
+      backdrop-filter: blur(2px);
+      transition: border-color .15s ease, transform .12s ease, box-shadow .15s ease;
     }
-    .item.first { border-color: var(--gold); }
-    .item:hover { border-color: var(--gold); }
-    .step {
-      width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--gold);
-      display: grid; place-items: center; color: var(--gold); font-weight: 700;
+    .item:hover, .item:focus-visible {
+      border-color: #ffd86b;
+      transform: translateY(-1px);
+      box-shadow: inset 0 0 0 1px rgba(255,216,107,.15), 0 10px 26px rgba(0,0,0,.5);
+      outline: none;
     }
-    .item b { display: block; font-family: var(--display); font-size: 24px; font-weight: 600; }
-    .item small { color: var(--muted); font-size: 13px; }
+    .item:active { transform: translateY(0); }
+    .ico {
+      width: 40px; height: 40px;
+      display: grid; place-items: center;
+      color: #f4cf7a;
+    }
+    .ico.green { color: #7bd85a; }
+    .ico svg { width: 30px; height: 30px; }
+    .label {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: clamp(17px, 4.4vw, 21px);
+      color: #f6ead0;
+      letter-spacing: .01em;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    }
+    .ctrl {
+      width: 46px; height: 46px;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      border: 1px solid rgba(244, 207, 122, .5);
+      background: rgba(4, 10, 22, .55);
+      color: #f4cf7a;
+      cursor: pointer;
+      transition: transform .12s ease, border-color .15s ease, color .15s ease;
+    }
+    .ctrl:hover { border-color: #ffd86b; transform: scale(1.05); }
+    .ctrl:active { transform: scale(.96); }
+    .ctrl.off { color: #c98a8a; }
+    .ctrl svg { width: 24px; height: 24px; }
   `]
 })
 export class HomeComponent {
   readonly store = inject(ReadingStore);
-  readonly install = inject(InstallService);
+  readonly muted = signal<boolean>(localStorage.getItem('nur-muted') === '1');
+
+  toggleMute(): void {
+    const next = !this.muted();
+    this.muted.set(next);
+    localStorage.setItem('nur-muted', next ? '1' : '0');
+  }
+
+  exit(): void {
+    // On the installed Android/PWA build this closes the window; harmless on web.
+    try {
+      window.close();
+    } catch {
+      /* no-op */
+    }
+  }
 }
