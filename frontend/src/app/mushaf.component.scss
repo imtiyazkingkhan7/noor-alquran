@@ -459,6 +459,7 @@
   color: var(--ink);
   letter-spacing: 0;
   word-spacing: 0;
+  column-gap: 0.22em;
   border-bottom: 1px solid #2a2118;
   font-weight: normal;
   font-synthesis: none;
@@ -475,7 +476,7 @@
 }
 
 .mushaf-line.filled {
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .mushaf-line > .word,
@@ -509,6 +510,7 @@
   line-height: var(--mushaf-line-h);
   letter-spacing: 0;
   word-spacing: 0;
+  column-gap: 0.14em;
   overflow: visible;
 }
 

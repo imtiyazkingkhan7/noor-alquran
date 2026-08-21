@@ -856,7 +856,8 @@ function packLines(ayahs: ReaderAyah[], maxWidth: number, font = FONT): Line[] {
   const lines: Line[] = [];
   let tokens: Token[] = [];
   let used = 0;
-  const gap = 2;
+  const fontPx = parseFloat(font) || 44;
+  const gap = Math.round(fontPx * 0.22);
   const flush = (short: boolean): void => {
     if (!tokens.length) {
       return;
