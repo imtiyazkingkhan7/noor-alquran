@@ -1,7 +1,13 @@
 {
   "name": "frontend",
   "version": "0.0.0",
+  "description": "Noor Al-Quran — Mushaf, recitation teacher, and Windows desktop shell",
+  "author": "Imtiyaz Khan",
+  "homepage": "https://noor-alquran.onrender.com",
   "main": "electron/main.js",
+  "engines": {
+    "node": ">=18.19.0 <23"
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve --proxy-config proxy.conf.json",
@@ -10,6 +16,10 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "desktop": "electron .",
+    "icon:win": "node scripts/write-win-icon.mjs",
+    "dist:win32": "node scripts/write-win-icon.mjs && electron-builder --win zip --ia32",
+    "dist:win32:dir": "node scripts/write-win-icon.mjs && electron-builder --win --ia32 --dir",
+    "dist:win32:installer": "node scripts/write-win-icon.mjs && electron-builder --win nsis portable zip --ia32",
     "android": "ng build --configuration production && npx cap sync android",
     "android:open": "npx cap open android"
   },
@@ -36,7 +46,8 @@
     "@angular/compiler-cli": "^20.3.28",
     "@capacitor/cli": "^8.5.0",
     "@types/jasmine": "~5.1.0",
-    "electron": "^43.4.0",
+    "electron": "43.4.0",
+    "electron-builder": "^26.0.12",
     "jasmine-core": "~5.6.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

@@ -5,6 +5,7 @@ frontend/node_modules/
 frontend/node_modules/
 frontend/.angular/
 frontend/dist/
+frontend/dist-desktop/
 pdfs/
 backend.zip
 fatiha-sample.json
